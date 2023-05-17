@@ -1,12 +1,14 @@
 import { Controller, Get, Post } from '@nestjs/common';
 import { AppService } from './app.service';
 import { SimilarityService } from './similarity.service';
+import { PrismaService } from './prisma.service';
 
 @Controller()
 export class AppController {
   constructor(
     private readonly appService: AppService,
     private readonly similarityService: SimilarityService,
+    private readonly prisma: PrismaService,
   ) {}
 
   @Get()
@@ -15,16 +17,21 @@ export class AppController {
   }
 
   @Get('/movies')
-  getMovies() {
-    const listA = [4, 5, 6];
-    const listB = [7, 8, 4];
+  async getMovies() {
+    const movies = await this.prisma.movie.findMany();
 
-    const correlation = this.similarityService.spearmanRankCorrelation(
-      listA,
-      listB,
-    );
+    return [{ movies }];
+  }
 
-    return [{ correlation }];
+  @Get('/create-movie')
+  async createMockMovie() {
+    const newMovie = await this.prisma.movie.create({
+      data: {
+        title: 'Guardians of the Galaxy: Vol 3',
+      },
+    });
+
+    return newMovie;
   }
 
   @Post('/movies')

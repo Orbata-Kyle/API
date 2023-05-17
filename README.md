@@ -32,6 +32,14 @@
 $ npm install
 ```
 
+## Starting Docker
+
+Install Docker, then run `docker compose up` to start postgres.
+
+## Prisma
+
+After starting the DB, run `npx prisma migrate dev` to set up the tables and models
+
 ## Running the app
 
 ```bash
