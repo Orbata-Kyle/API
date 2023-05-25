@@ -1,0 +1,38 @@
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
+
+# Assuming you have preprocessed your data and it's now in a list of strings
+data = ["movie1", "movie2", "movie3", ...]
+
+# Vectorize the data
+vectorizer = TfidfVectorizer()
+tfidf_matrix = vectorizer.fit_transform(data)
+
+# Calculate similarity scores
+
+from sklearn.preprocessing import LabelEncoder
+
+def jaccard_similarity(list1, list2):
+    intersection = len(list(set(list1).intersection(list2)))
+    union = (len(list1) + len(list2)) - intersection
+    return float(intersection) / union
+
+# Assuming you have preprocessed your data and it's now in a list of lists
+data = [["movie1", "movie2", "movie3"], ["movie2", "movie3", "movie4"], ...]
+
+# Convert the movie names to numerical values for Spearman rank correlation
+encoder = LabelEncoder()
+data_encoded = [encoder.fit_transform(user) for user in data]
+
+# Calculate Jaccard similarity and Spearman rank correlation for each pair of users
+similarity_scores = []
+for i in range(len(data)):
+    user_scores = []
+    for j in range(len(data)):
+        jaccard = jaccard_similarity(data[i], data[j])
+        correlation, _ = spearmanr(data_encoded[i], data_encoded[j])
+        average_score = (jaccard + correlation) / 2
+        user_scores.append(average_score)
+    similarity_scores.append(user_scores)
+
+# Now you can use these similarity scores to see how similar different movies are to each other
