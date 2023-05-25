@@ -17,6 +17,8 @@ model Movie {
   backdropUrl     String?
   synopsis        String?
   UserMovieRating UserMovieRating[]
+
+  @@index([title])
 }
 
 model User {
