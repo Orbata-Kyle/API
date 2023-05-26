@@ -8,7 +8,7 @@ datasource db {
 }
 
 model Movie {
-  id              String            @id @db.Uuid
+  id              String            @id @default(uuid()) @db.Uuid
   title           String
   posterUrl       String?
   backdropUrl     String?
@@ -20,14 +20,14 @@ model Movie {
 }
 
 model User {
-  id              String            @id @db.Uuid
+  id              String            @id @default(uuid()) @db.Uuid
   name            String
   email           String
   UserMovieRating UserMovieRating[]
 }
 
 model UserMovieRating {
-  id      String @id @db.Uuid
+  id      String @id @default(uuid()) @db.Uuid
   userId  String @db.Uuid
   movieId String @db.Uuid
   rating  Int
