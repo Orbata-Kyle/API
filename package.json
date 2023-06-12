@@ -27,7 +27,8 @@
     "csv-parse": "^5.3.10",
     "mathjs": "^11.8.0",
     "reflect-metadata": "^0.1.13",
-    "rxjs": "^7.2.0"
+    "rxjs": "^7.2.0",
+    "statistics.js": "^1.0.0"
   },
   "devDependencies": {
     "@nestjs/cli": "^9.0.0",
