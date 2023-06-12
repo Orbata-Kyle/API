@@ -15,17 +15,26 @@ async function seedUsers() {
   console.log('👥 Seeding users...');
 
   for (const user of userData) {
-    await prisma.user.create({
+    const newUser = await prisma.user.create({
       data: {
         name: user.name,
         email: user.name.toLowerCase().replace(/\s/g, '.') + '@example.com',
       },
     });
 
+    let rank = 0;
     for (const title of user.movies) {
       const movie = await findMatchingMovieByTitle(title);
       if (movie) {
-        // Create a rating for the movie
+        const rating = await prisma.userMovieRating.create({
+          data: {
+            movieId: movie.id,
+            userId: newUser.id,
+            rating: rank,
+          },
+        });
+        rank++;
+        console.log('Created rating for the movie ' + movie.title);
       }
     }
   }

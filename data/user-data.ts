@@ -386,7 +386,7 @@ export const userData = [
       'Forrest Gump',
       '1941',
       'Die Hard',
-      'True LIes',
+      'True Lies',
       'Inglorious Basterds',
       'Saving Private Ryan',
       'Pulp Fiction',
