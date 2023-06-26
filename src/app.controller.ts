@@ -16,22 +16,42 @@ export class AppController {
     return this.appService.getHello();
   }
 
+  @Get('/debug')
+  async debug() {
+    const users = await this.prisma.user.findMany({
+      include: { UserMovieRating: true },
+    });
+
+    const firstUser = users[0];
+    const firstUserMovieIds = firstUser.UserMovieRating.map(
+      (umr) => umr.movieId,
+    );
+
+    for (const nextUser of users) {
+      const nextUserMovieIds = nextUser.UserMovieRating.map(
+        (umr) => umr.movieId,
+      );
+
+      console.log(firstUserMovieIds.length, nextUserMovieIds.length);
+
+      const similarity = this.similarityService.getSimilarity(
+        [...firstUserMovieIds, 'df67cee3-bb8b-437e-8d02-c04400ec3654'],
+        [...nextUserMovieIds, 'df67cee3-bb8b-437e-8d02-c04400ec3654'],
+      );
+
+      console.log(
+        `Similarity between ${firstUser.name} and ${nextUser.name}: ${similarity}`,
+      );
+    }
+
+    return { users };
+  }
+
   @Get('/movies')
   async getMovies() {
     const movies = await this.prisma.movie.findMany();
 
     return [{ movies }];
-  }
-
-  @Get('/create-movie')
-  async createMockMovie() {
-    const newMovie = await this.prisma.movie.create({
-      data: {
-        title: 'Guardians of the Galaxy: Vol 3',
-      },
-    });
-
-    return newMovie;
   }
 
   @Post('/movies')
