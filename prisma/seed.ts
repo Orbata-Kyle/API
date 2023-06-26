@@ -7,8 +7,9 @@ import { userData } from '../data/user-data';
 const prisma = new PrismaClient();
 
 async function main() {
-  await seedMovies();
-  await seedUsers();
+  // Disabling while we move to the TVDB
+  // await seedMovies();
+  // await seedUsers();
 }
 
 async function seedUsers() {

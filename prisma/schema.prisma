@@ -8,11 +8,12 @@ datasource db {
 }
 
 model Movie {
-  id              String            @id @default(uuid()) @db.Uuid
+  id              Int               @id
   title           String
   posterUrl       String?
   backdropUrl     String?
   synopsis        String?
+  releaseDate     DateTime?         @db.Date
   UserMovieRating UserMovieRating[]
 
   @@index([title])
@@ -29,7 +30,7 @@ model User {
 model UserMovieRating {
   id      String @id @default(uuid()) @db.Uuid
   userId  String @db.Uuid
-  movieId String @db.Uuid
+  movieId Int
   rating  Int
   movie   Movie  @relation(fields: [movieId], references: [id])
   user    User   @relation(fields: [userId], references: [id])
