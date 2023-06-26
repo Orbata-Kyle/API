@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -17,6 +14,9 @@ model Movie {
   backdropUrl     String?
   synopsis        String?
   UserMovieRating UserMovieRating[]
+
+  @@index([title])
+  @@index([title(ops: raw("gin_trgm_ops"))], map: "title_trgm_idx", type: Gin)
 }
 
 model User {
@@ -31,6 +31,6 @@ model UserMovieRating {
   userId  String @db.Uuid
   movieId String @db.Uuid
   rating  Int
-  user    User   @relation(fields: [userId], references: [id])
   movie   Movie  @relation(fields: [movieId], references: [id])
+  user    User   @relation(fields: [userId], references: [id])
 }
