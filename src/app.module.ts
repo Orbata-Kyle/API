@@ -4,11 +4,13 @@ import { AppService } from './app.service';
 import { SimilarityService } from './similarity.service';
 import { PrismaService } from './prisma.service';
 import { ConfigModule } from '@nestjs/config';
-import { TheMovieDb } from './services/the-move-db.service';
+import { TheMovieDb } from './services/the-movie-db.service';
+import { MovieController } from './movie/movie.controller';
+import { UserController } from './user/user.controller';
 
 @Module({
   imports: [ConfigModule.forRoot()],
-  controllers: [AppController],
+  controllers: [AppController, MovieController, UserController],
   providers: [AppService, SimilarityService, PrismaService, TheMovieDb],
 })
 export class AppModule {}

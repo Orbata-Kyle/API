@@ -31,7 +31,6 @@ async function seedUsers() {
           data: {
             movieId: movie.id,
             userId: newUser.id,
-            rating: rank,
           },
         });
         rank++;
