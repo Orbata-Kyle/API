@@ -32,6 +32,14 @@
 $ npm install
 ```
 
+## Connecting to PlanetScale
+
+To connect to PlanetScale, run:
+
+```
+pscale connect production dev --port 3309
+```
+
 ## Starting Docker
 
 Install Docker, then run `docker compose up` to start postgres.

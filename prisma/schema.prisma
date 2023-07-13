@@ -3,8 +3,9 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider     = "mysql"
+  url          = env("DATABASE_URL")
+  relationMode = "prisma"
 }
 
 model Movie {
@@ -17,21 +18,23 @@ model Movie {
   UserMovieRating UserMovieRating[]
 
   @@index([title])
-  @@index([title(ops: raw("gin_trgm_ops"))], map: "title_trgm_idx", type: Gin)
 }
 
 model User {
-  id              String            @id @default(uuid()) @db.Uuid
+  id              String            @id @default(uuid())
   name            String
   email           String
   UserMovieRating UserMovieRating[]
 }
 
 model UserMovieRating {
-  id          String  @id @default(uuid()) @db.Uuid
-  userId      String  @db.Uuid
+  id          String  @id @default(uuid())
+  userId      String
   movieId     Int
   likedStatus String?
   movie       Movie   @relation(fields: [movieId], references: [id])
   user        User    @relation(fields: [userId], references: [id])
+
+  @@index([movieId])
+  @@index([userId])
 }
