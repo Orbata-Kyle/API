@@ -1,27 +1,17 @@
-import {
-  BadRequestException,
-  Controller,
-  Get,
-  Param,
-  Post,
-  Query,
-} from '@nestjs/common';
-import type { Prisma } from '@prisma/client';
+import { Controller, Get, Param, Post, Query, UseGuards } from '@nestjs/common';
+import { AuthGuard } from 'src/auth/auth.guard';
+import { User } from 'src/auth/user.decorator';
 import { PrismaService } from 'src/prisma.service';
-import { TheMovieDb } from 'src/services/the-movie-db.service';
+import { FirebaseUser } from 'src/services/firebase.service';
 
 @Controller('user')
 export class UserController {
-  constructor(
-    private readonly prisma: PrismaService,
-    private readonly theMovieDb: TheMovieDb,
-  ) {}
+  constructor(private readonly prisma: PrismaService) {}
 
+  @UseGuards(AuthGuard)
   @Get()
-  async listUsers() {
-    const users = await this.prisma.user.findMany({});
-
-    return users;
+  async listUsers(@User() user: FirebaseUser) {
+    return user;
   }
 
   @Get(':id')
