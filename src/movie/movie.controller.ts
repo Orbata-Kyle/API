@@ -5,9 +5,13 @@ import {
   Param,
   Post,
   Query,
+  UseGuards,
 } from '@nestjs/common';
 import type { Prisma } from '@prisma/client';
+import { AuthGuard } from 'src/auth/auth.guard';
+import { User } from 'src/auth/user.decorator';
 import { PrismaService } from 'src/prisma.service';
+import { FirebaseUser } from 'src/services/firebase.service';
 import { TheMovieDb } from 'src/services/the-movie-db.service';
 
 @Controller('movie')
@@ -62,7 +66,7 @@ export class MovieController {
     }
 
     const movieFromApi = await this.theMovieDb.getMovieById(parseInt(id));
-    const movieToSave: Prisma.MovieCreateManyInput = {
+    const movieToSave: Prisma.MovieCreateInput = {
       id: movieFromApi.id,
       title: movieFromApi.original_title,
       backdropUrl: movieFromApi.backdrop_path
@@ -82,10 +86,12 @@ export class MovieController {
     return savedMovie;
   }
 
+  @UseGuards(AuthGuard)
   @Post(':id/rate/:action')
   async rateMovieById(
     @Param('id') id: string,
     @Param('action') action: string,
+    @User() user: FirebaseUser,
   ) {
     // Make sure the action is valid
     if (!['liked', 'disliked', 'unseen'].includes(action)) {
@@ -93,7 +99,7 @@ export class MovieController {
     }
 
     // Make sure the movie exists
-    const movieFromDb = await this.prisma.movie.findUniqueOrThrow({
+    const movieFromDb = await this.prisma.movie.findUnique({
       where: { id: parseInt(id) },
     });
 
@@ -101,7 +107,7 @@ export class MovieController {
       data: {
         likedStatus: action,
         movieId: movieFromDb.id,
-        userId: '5b97b22d-57c8-4fd2-8083-acfd94e53b56',
+        userId: user.user_id,
       },
     });
 

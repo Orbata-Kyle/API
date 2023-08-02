@@ -8,10 +8,16 @@ import { TheMovieDb } from './services/the-movie-db.service';
 import { MovieController } from './movie/movie.controller';
 import { UserController } from './user/user.controller';
 import { FirebaseService } from './services/firebase.service';
+import { SwipeController } from './swipe/swipe.controller';
 
 @Module({
   imports: [ConfigModule.forRoot()],
-  controllers: [AppController, MovieController, UserController],
+  controllers: [
+    AppController,
+    MovieController,
+    UserController,
+    SwipeController,
+  ],
   providers: [
     AppService,
     SimilarityService,
