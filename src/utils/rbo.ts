@@ -1,3 +1,5 @@
+import logger from './logging/winston-config';
+
 /**
  * This calculates the Rank Biased Overlap(RBO) for two sorted lists.
  *
@@ -112,7 +114,7 @@ export class RBO {
 
   updateUneven(e) {
     if (this.shortDepth == -1) {
-      console.log('RBO: UpdateUneven() called without EndShort()');
+      logger.warn('RBO: UpdateUneven() called without EndShort()');
       return false;
     }
     if (this.seen[e]) {

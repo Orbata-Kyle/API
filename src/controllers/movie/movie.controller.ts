@@ -14,6 +14,8 @@ import { PrismaService } from 'src/prisma.service';
 import { FirebaseUser } from 'src/services/firebase.service';
 import { TheMovieDb } from 'src/services/the-movie-db.service';
 
+import logger from '../../utils/logging/winston-config';
+
 @Controller('movie')
 export class MovieController {
   constructor(
@@ -23,7 +25,7 @@ export class MovieController {
 
   @Get('search')
   async searchForMovieByTitle(@Query('title') title: string) {
-    console.log('Searching for movie by title:', title);
+    logger.info('Searching for movie by title:', title);
     const response = await this.theMovieDb.searchForMovieByTitle(title);
 
     const moviesToSave: Prisma.MovieCreateManyInput[] = [];
@@ -61,7 +63,7 @@ export class MovieController {
     });
 
     if (movieFromDb) {
-      console.log('Found movie in DB');
+      logger.info('Found movie in DB');
       return movieFromDb;
     }
 

@@ -5,6 +5,7 @@ import { PrismaService } from './prisma.service';
 import { TheMovieDb } from './services/the-movie-db.service';
 import type { Prisma } from '@prisma/client';
 import { FirebaseService } from './services/firebase.service';
+import logger from './utils/logging/winston-config';
 
 @Controller()
 export class AppController {
@@ -36,11 +37,11 @@ export class AppController {
         (umr) => umr.movieId,
       );
 
-      console.log(firstUserMovieIds.length, nextUserMovieIds.length);
+      logger.debug(firstUserMovieIds.length + ', ' + nextUserMovieIds.length);
 
       const similarity = this.similarityService.getSimilarity([], []);
 
-      console.log(
+      logger.info(
         `Similarity between ${firstUser.name} and ${nextUser.name}: ${similarity}`,
       );
     }

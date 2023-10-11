@@ -26,6 +26,7 @@
     "@nestjs/core": "^9.0.0",
     "@nestjs/platform-express": "^9.0.0",
     "@prisma/client": "^4.14.1",
+    "@types/winston": "^2.4.4",
     "axios": "^1.4.0",
     "csv-parse": "^5.3.10",
     "jsonwebtoken": "^9.0.1",
@@ -33,7 +34,9 @@
     "mathjs": "^11.8.0",
     "reflect-metadata": "^0.1.13",
     "rxjs": "^7.2.0",
-    "statistics.js": "^1.0.0"
+    "statistics.js": "^1.0.0",
+    "winston": "^3.11.0",
+    "winston-daily-rotate-file": "^4.7.1"
   },
   "devDependencies": {
     "@nestjs/cli": "^9.0.0",
