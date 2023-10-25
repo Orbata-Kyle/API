@@ -8,10 +8,9 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import type { Prisma } from '@prisma/client';
-import { AuthGuard } from 'src/auth/auth.guard';
-import { User } from 'src/auth/user.decorator';
-import { PrismaService } from 'src/prisma.service';
-import { FirebaseUser } from 'src/services/firebase.service';
+import { GetUser } from 'src/auth/decorator';
+import { JwtGuard } from 'src/auth/guard';
+import { PrismaService } from 'src/prisma/prisma.service';
 import { TheMovieDb } from 'src/services/the-movie-db.service';
 
 @Controller('swipe')
@@ -21,9 +20,9 @@ export class SwipeController {
     private readonly theMovieDb: TheMovieDb,
   ) {}
 
-  @UseGuards(AuthGuard)
+  @UseGuards(JwtGuard)
   @Get('next')
-  async getNextMovieToSwipe(@User() user: FirebaseUser) {
+  async getNextMovieToSwipe(@GetUser('id') userId: number) {
     const popularMovies = await this.theMovieDb.getPopularMovies();
 
     await this.prisma.movie.createMany({
@@ -33,7 +32,7 @@ export class SwipeController {
 
     const alreadyWatchedMovies = await this.prisma.userMovieRating.findMany({
       where: {
-        userId: user.user_id,
+        userId,
         movieId: {
           in: popularMovies.map((movie) => movie.id),
         },

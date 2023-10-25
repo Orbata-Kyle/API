@@ -8,13 +8,12 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import type { Prisma } from '@prisma/client';
-import { AuthGuard } from 'src/auth/auth.guard';
-import { User } from 'src/auth/user.decorator';
-import { PrismaService } from 'src/prisma.service';
-import { FirebaseUser } from 'src/services/firebase.service';
+import { JwtGuard } from 'src/auth/guard';
+import { PrismaService } from 'src/prisma/prisma.service';
 import { TheMovieDb } from 'src/services/the-movie-db.service';
 
-import logger from '../../utils/logging/winston-config';
+import logger from '../utils/logging/winston-config';
+import { GetUser } from 'src/auth/decorator';
 
 @Controller('movie')
 export class MovieController {
@@ -88,12 +87,12 @@ export class MovieController {
     return savedMovie;
   }
 
-  @UseGuards(AuthGuard)
+  @UseGuards(JwtGuard)
   @Post(':id/rate/:action')
   async rateMovieById(
     @Param('id') id: string,
     @Param('action') action: string,
-    @User() user: FirebaseUser,
+    @GetUser('id') userId: number,
   ) {
     // Make sure the action is valid
     if (!['liked', 'disliked', 'unseen'].includes(action)) {
@@ -109,7 +108,7 @@ export class MovieController {
       data: {
         likedStatus: action,
         movieId: movieFromDb.id,
-        userId: user.user_id,
+        userId: userId,
       },
     });
 
