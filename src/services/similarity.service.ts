@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import statistics from 'statistics.js';
-import { RBO } from './utils/rbo';
+import { RBO } from '../utils/rbo';
 
 const RBO_RANKING_WEIGHT = 0.99;
 

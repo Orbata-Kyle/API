@@ -1,11 +1,10 @@
 import { ForbiddenException, Injectable } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
+import { PrismaService } from '../../prisma/prisma.service';
 import { AuthDto } from './dto';
 import * as argon from 'argon2';
-import { PrismaClientKnownRequestError } from '@prisma/client/runtime';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
-import logger from '../utils/logging/winston-config';
+import logger from '../../utils/logging/winston-config';
 
 @Injectable()
 export class AuthService {
@@ -23,15 +22,17 @@ export class AuthService {
       const user = await this.prisma.user.create({
         data: {
           email: dto.email,
+          name: dto.name,
           hash,
         },
       });
 
+      logger.info(`User ${user.email} with id ${user.id} created`);
       return this.signToken(user.id, user.email);
     } catch (error) {
       if (error.constructor.name === 'PrismaClientKnownRequestError') {
         if (error.code === 'P2002') {
-          throw new ForbiddenException('Credentials taken');
+          throw new ForbiddenException('Email taken');
         }
       }
       throw error;
@@ -46,12 +47,13 @@ export class AuthService {
       },
     });
     // if user does not exist throw exception
-    if (!user) throw new ForbiddenException('Credentials incorrect');
+    if (!user) throw new ForbiddenException('User not Found');
 
     // compare password
     const pwMatches = await argon.verify(user.hash, dto.password);
     // if password incorrect throw exception
-    if (!pwMatches) throw new ForbiddenException('Credentials incorrect');
+    if (!pwMatches) throw new ForbiddenException('Password incorrect');
+    logger.info(`User ${user.email} with id ${user.id} logged in`);
     return this.signToken(user.id, user.email);
   }
 

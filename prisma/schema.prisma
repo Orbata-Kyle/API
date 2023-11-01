@@ -25,6 +25,7 @@ model User {
   name            String?
   email           String            @unique
   hash            String
+  admin           Boolean           @default(false)
   UserMovieRating UserMovieRating[]
 }
 
@@ -33,8 +34,8 @@ model UserMovieRating {
   userId      Int
   movieId     Int
   likedStatus String?
-  movie       Movie   @relation(fields: [movieId], references: [id])
-  user        User    @relation(fields: [userId], references: [id])
+  movie       Movie   @relation(fields: [movieId], references: [id], onDelete: Cascade)
+  user        User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([movieId])
   @@index([userId])

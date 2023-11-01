@@ -13,7 +13,7 @@ export class LoggingMiddleware implements NestMiddleware {
       const { statusCode } = response;
       const elapsed = Date.now() - start;
       logger.http(
-        ` ${statusCode} ${method} ${request.route.path} - ${ip} - ${elapsed}ms`,
+        ` ${statusCode} ${method} ${request.route?.path} - ${ip} - ${elapsed}ms`,
       );
     });
 

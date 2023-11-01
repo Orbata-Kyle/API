@@ -2,29 +2,26 @@ import {
   BadRequestException,
   Controller,
   Get,
+  Injectable,
   Param,
   Post,
   Query,
   UseGuards,
 } from '@nestjs/common';
 import type { Prisma } from '@prisma/client';
-import { JwtGuard } from 'src/auth/guard';
-import { PrismaService } from 'src/prisma/prisma.service';
-import { TheMovieDb } from 'src/services/the-movie-db.service';
+import { PrismaService } from '../../prisma/prisma.service';
+import { TheMovieDb } from '../../services/the-movie-db.service';
+import logger from '../../utils/logging/winston-config';
 
-import logger from '../utils/logging/winston-config';
-import { GetUser } from 'src/auth/decorator';
-
-@Controller('movie')
-export class MovieController {
+@Injectable()
+export class MovieService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly theMovieDb: TheMovieDb,
   ) {}
 
-  @Get('search')
-  async searchForMovieByTitle(@Query('title') title: string) {
-    logger.info('Searching for movie by title:', title);
+  async searchForMovieByTitle(title: string) {
+    logger.info('Searching for movie by title: ' + title);
     const response = await this.theMovieDb.searchForMovieByTitle(title);
 
     const moviesToSave: Prisma.MovieCreateManyInput[] = [];
@@ -47,22 +44,18 @@ export class MovieController {
       }
     }
 
-    const savedMovies = await this.prisma.movie.createMany({
-      data: moviesToSave,
-      skipDuplicates: true,
-    });
+    this.prisma.saveMoviesToDb(moviesToSave);
 
     return moviesToSave;
   }
 
-  @Get(':id')
-  async getMovieById(@Param('id') id: string) {
+  async getMovieById(id: string) {
     const movieFromDb = await this.prisma.movie.findUnique({
       where: { id: parseInt(id) },
     });
 
     if (movieFromDb) {
-      logger.info('Found movie in DB');
+      logger.info(`Found movie with id ${id} in DB`);
       return movieFromDb;
     }
 
@@ -83,26 +76,38 @@ export class MovieController {
     const savedMovie = await this.prisma.movie.create({
       data: movieToSave,
     });
+    logger.info(`Saved 1 movie to DB`);
 
     return savedMovie;
   }
 
-  @UseGuards(JwtGuard)
-  @Post(':id/rate/:action')
-  async rateMovieById(
-    @Param('id') id: string,
-    @Param('action') action: string,
-    @GetUser('id') userId: number,
-  ) {
-    // Make sure the action is valid
-    if (!['liked', 'disliked', 'unseen'].includes(action)) {
-      throw new BadRequestException('Invalid action');
-    }
-
+  async rateMovieById(id: string, action: string, userId: number) {
+    logger.info(`User ${userId} ${action} movie ${id}`);
     // Make sure the movie exists
-    const movieFromDb = await this.prisma.movie.findUnique({
+    let movieFromDb = await this.prisma.movie.findUnique({
       where: { id: parseInt(id) },
     });
+
+    if (!movieFromDb) {
+      logger.warn(`Did not find movie with id ${id} in DB`);
+      const movieFromApi = await this.theMovieDb.getMovieById(parseInt(id));
+      const movieToSave: Prisma.MovieCreateInput = {
+        id: movieFromApi.id,
+        title: movieFromApi.original_title,
+        backdropUrl: movieFromApi.backdrop_path
+          ? `https://image.tmdb.org/t/p/original${movieFromApi.backdrop_path}`
+          : undefined,
+        posterUrl: movieFromApi.poster_path
+          ? `https://image.tmdb.org/t/p/original${movieFromApi.poster_path}`
+          : undefined,
+        releaseDate: new Date(movieFromApi.release_date),
+        synopsis: movieFromApi.overview,
+      };
+      movieFromDb = await this.prisma.movie.create({
+        data: movieToSave,
+      });
+      logger.info(`Saved 1 movie to DB`);
+    }
 
     const movieRating = await this.prisma.userMovieRating.create({
       data: {

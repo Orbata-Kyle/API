@@ -1,8 +1,13 @@
 import { INestApplication, Injectable, OnModuleInit } from '@nestjs/common';
-import { PrismaClient } from '@prisma/client';
-
+import { Prisma, PrismaClient } from '@prisma/client';
+import logger from '../utils/logging/winston-config';
+import { ConfigService } from '@nestjs/config';
 @Injectable()
 export class PrismaService extends PrismaClient implements OnModuleInit {
+  constructor(private config: ConfigService) {
+    super();
+  }
+
   async onModuleInit() {
     await this.$connect();
   }
@@ -11,5 +16,31 @@ export class PrismaService extends PrismaClient implements OnModuleInit {
     this.$on('beforeExit', async () => {
       await app.close();
     });
+  }
+
+  async saveMoviesToDb(
+    movies: Prisma.MovieCreateManyInput[],
+    skipDuplicates = true,
+  ) {
+    const savedMovies = await this.movie.createMany({
+      data: movies,
+      skipDuplicates,
+    });
+
+    logger.info(`Saved ${savedMovies.count} movies to DB`);
+    return savedMovies;
+  }
+
+  async cleanDb() {
+    if (this.config.get('ENV') !== 'test')
+      throw new Error('Cannot clean whole db in non-test environment');
+    else {
+      logger.info('Cleaning DB');
+      return this.$transaction([
+        this.userMovieRating.deleteMany(),
+        this.movie.deleteMany(),
+        this.user.deleteMany(),
+      ]);
+    }
   }
 }

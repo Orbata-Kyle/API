@@ -1,6 +1,5 @@
 import { Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
-import { AppService } from './app.service';
-import { SimilarityService } from './similarity.service';
+import { SimilarityService } from './services/similarity.service';
 import { PrismaService } from './prisma/prisma.service';
 import { TheMovieDb } from './services/the-movie-db.service';
 import type { Prisma } from '@prisma/client';
@@ -9,15 +8,9 @@ import logger from './utils/logging/winston-config';
 @Controller()
 export class AppController {
   constructor(
-    private readonly appService: AppService,
     private readonly similarityService: SimilarityService,
     private readonly prisma: PrismaService,
   ) {}
-
-  @Get()
-  getHello(): string {
-    return this.appService.getHello();
-  }
 
   @Get('/debug')
   async debug() {
@@ -58,11 +51,4 @@ export class AppController {
   addMovie(body) {
     return [];
   }
-
-  // @Post('/token-debug')
-  // async tokenDebug(@Body('token') token: string) {
-  //   const validatedToken = await this.firebase.verifyToken(token);
-
-  //   return validatedToken;
-  // }
 }
