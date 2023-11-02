@@ -109,6 +109,19 @@ export class MovieService {
       logger.info(`Saved 1 movie to DB`);
     }
 
+    // Find out if user already rated this movie
+    const existingRating = await this.prisma.userMovieRating.findFirst({
+      where: { userId, movieId: parseInt(id) },
+    });
+    if (existingRating) {
+      logger.info(`User ${userId} already rated movie ${id}`);
+      await this.prisma.userMovieRating.update({
+        where: { id: existingRating.id },
+        data: { likedStatus: action },
+      });
+      return existingRating;
+    }
+
     const movieRating = await this.prisma.userMovieRating.create({
       data: {
         likedStatus: action,
