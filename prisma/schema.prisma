@@ -21,19 +21,21 @@ model Movie {
 }
 
 model User {
-  id              String            @id @default(uuid())
-  name            String
-  email           String
+  id              Int               @id @default(autoincrement())
+  name            String?
+  email           String            @unique
+  hash            String
+  admin           Boolean           @default(false)
   UserMovieRating UserMovieRating[]
 }
 
 model UserMovieRating {
-  id          String  @id @default(uuid())
-  userId      String
+  id          Int     @id @default(autoincrement())
+  userId      Int
   movieId     Int
   likedStatus String?
-  movie       Movie   @relation(fields: [movieId], references: [id])
-  user        User    @relation(fields: [userId], references: [id])
+  movie       Movie   @relation(fields: [movieId], references: [id], onDelete: Cascade)
+  user        User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([movieId])
   @@index([userId])

@@ -1,29 +1,35 @@
-import { Module } from '@nestjs/common';
+import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { AppController } from './app.controller';
-import { AppService } from './app.service';
-import { SimilarityService } from './similarity.service';
-import { PrismaService } from './prisma.service';
+import { SimilarityService } from './services/similarity.service';
+import { PrismaService } from './prisma/prisma.service';
 import { ConfigModule } from '@nestjs/config';
 import { TheMovieDb } from './services/the-movie-db.service';
-import { MovieController } from './movie/movie.controller';
-import { UserController } from './user/user.controller';
-import { FirebaseService } from './services/firebase.service';
-import { SwipeController } from './swipe/swipe.controller';
+import { MovieController } from './modules/movie/movie.controller';
+import { UserController } from './modules/user/user.controller';
+import { SwipeController } from './modules/swipe/swipe.controller';
+import { LoggingMiddleware } from './services/logging-middleware-service';
+import { JwtModule } from '@nestjs/jwt';
+import { AuthModule } from './modules/auth/auth.module';
+import { PrismaModule } from './prisma/prisma.module';
+import { MovieModule } from './modules/movie/movie.module';
+import { SwipeModule } from './modules/swipe/swipe.module';
+import { UserModule } from './modules/user/user.module';
 
 @Module({
-  imports: [ConfigModule.forRoot()],
-  controllers: [
-    AppController,
-    MovieController,
-    UserController,
-    SwipeController,
+  imports: [
+    ConfigModule.forRoot({ isGlobal: true }),
+    JwtModule.register({}),
+    AuthModule,
+    PrismaModule,
+    MovieModule,
+    SwipeModule,
+    UserModule,
   ],
-  providers: [
-    AppService,
-    SimilarityService,
-    PrismaService,
-    TheMovieDb,
-    FirebaseService,
-  ],
+  controllers: [AppController],
+  providers: [SimilarityService, TheMovieDb],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer.apply(LoggingMiddleware).forRoutes('*');
+  }
+}
