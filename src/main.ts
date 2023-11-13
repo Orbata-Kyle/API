@@ -6,6 +6,7 @@ import { AllExceptionsFilter } from './utils/logging/all-exceptions.filter';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   const { httpAdapter } = app.get(HttpAdapterHost);
+  app.enableCors({ origin: '*' });
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true, // remove unknown properties from DTOs
