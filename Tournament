@@ -1,0 +1,80 @@
+const MIN_MOVIES_PER_TOURNAMENT = 16;
+
+function tournamentSort(movieList, compareFunction) {
+  if (movieList.length === 1) return movieList;
+  const nextRound = [];
+  for (let i = 0; i < movieList.length; i += 2) {
+    if (i + 1 < movieList.length) {
+      const winner = compareFunction(movieList[i], movieList[i + 1]);
+      nextRound.push(winner);
+    } else {
+      nextRound.push(movieList[i]);
+    }
+  }
+  return tournamentSort(nextRound, compareFunction);
+}
+
+function binarySearchAndInsert(sortedArray, movie, compareFunction) {
+  let left = 0;
+  let right = sortedArray.length - 1;
+
+  while (left <= right) {
+    const mid = Math.floor((left + right) / 2);
+    const comparison = compareFunction(sortedArray[mid], movie);
+
+    if (comparison === 0) {
+      // Equal, insert at the current position
+      sortedArray.splice(mid, 0, movie);
+      return;
+    } else if (comparison > 0) {
+      // Move left
+      right = mid - 1;
+    } else {      
+      // Move right
+      left = mid + 1;
+    }
+  }
+
+  // Insert at the left position
+  sortedArray.splice(left, 0, movie);
+}
+
+function compareLikedMovies(movieA, movieB) {
+  // Get user input to compare liked movies
+  const userInput = prompt(`Which movie do you like more?\n1. ${movieA.title}\n2. ${movieB.title}\n`);
+  return userInput === "1" ? -1 : 1;
+}
+
+function compareDislikedMovies(movieA, movieB) {
+  // Get user input to compare disliked movies
+  const userInput = prompt(`Which movie do you dislike more?\n1. ${movieA.title}\n2. ${movieB.title}\n`);
+  return userInput === "1" ? -1 : 1;
+}
+
+function processFirstTournament(tournamentLikeList, tournamentDislikeList, compareLikedMovies, compareDislikedMovies) {
+  let likeList = tournamentLikeList.slice(0, 8);
+  let dislikeList = tournamentDislikeList.slice(0, 8);
+
+  let likeLogList = tournamentSort(likeList, compareLikedMovies);
+  let dislikeLogList = tournamentSort(dislikeList, compareDislikedMovies);
+
+  let remainingLikeList = tournamentLikeList.slice(8);
+  let remainingDislikeList = tournamentDislikeList.slice(8);
+
+  // Process remaining movies if needed
+  if (remainingLikeList.length > 0) {
+    let remainingLikeListResult = tournamentSort(remainingLikeList, compareLikedMovies);
+    likeLogList = likeLogList.concat(remainingLikeListResult);
+  }
+  if (remainingDislikeList.length > 0) {
+    let remainingDislikeListResult = tournamentSort(remainingDislikeList, compareDislikedMovies);
+    dislikeLogList = dislikeLogList.concat(remainingDislikeListResult);
+  }
+
+  return {
+    likeLogList,
+    dislikeLogList
+  };
+}
+
+export { MIN_MOVIES_PER_TOURNAMENT, tournamentSort, binarySearchAndInsert, compareLikedMovies, compareDislikedMovies, processFirstTournament };
