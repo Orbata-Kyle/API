@@ -32,16 +32,16 @@ export class TournamentService {
   async tournamentRankMovieForUser(
     userId: number,
     winnerId: number,
-    looserId: number,
+    loserId: number,
   ) {
     // Add to database first to make sure it's working
-    await this.addTournamentRankToDatabase(userId, winnerId, looserId);
+    await this.addTournamentRankToDatabase(userId, winnerId, loserId);
 
     // Then add to graph
     await this.tournamentGraphService.tournamentRankMovieForUser(
       userId,
       winnerId,
-      looserId,
+      loserId,
       winnerId,
     );
 

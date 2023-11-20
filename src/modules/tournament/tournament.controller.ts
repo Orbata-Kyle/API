@@ -25,12 +25,12 @@ export class TournamentController {
     @GetUser('id') userId: number,
   ) {
     await this.movieService.ensureMovieInDb(dto.winnerId);
-    await this.movieService.ensureMovieInDb(dto.looserId);
+    await this.movieService.ensureMovieInDb(dto.loserId);
 
     return this.tournamentService.tournamentRankMovieForUser(
       userId,
       dto.winnerId,
-      dto.looserId,
+      dto.loserId,
     );
   }
 }

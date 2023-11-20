@@ -7,5 +7,5 @@ export class RankDto {
 
   @IsNumber()
   @IsNotEmpty()
-  looserId: number;
+  loserId: number;
 }
