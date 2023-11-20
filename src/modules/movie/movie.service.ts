@@ -3,6 +3,7 @@ import {
   Controller,
   Get,
   Injectable,
+  InternalServerErrorException,
   Param,
   Post,
   Query,
@@ -19,6 +20,37 @@ export class MovieService {
     private readonly prisma: PrismaService,
     private readonly theMovieDb: TheMovieDb,
   ) {}
+
+  async ensureMovieInDb(id: number): Promise<void> {
+    const movieFromDb = await this.prisma.movie.findUnique({
+      where: { id },
+    });
+
+    if (movieFromDb) {
+      return;
+    }
+
+    const movieFromApi = await this.theMovieDb.getMovieById(id);
+    const movieToSave: Prisma.MovieCreateInput = {
+      id: movieFromApi.id,
+      title: movieFromApi.original_title,
+      backdropUrl: movieFromApi.backdrop_path
+        ? `https://image.tmdb.org/t/p/original${movieFromApi.backdrop_path}`
+        : undefined,
+      posterUrl: movieFromApi.poster_path
+        ? `https://image.tmdb.org/t/p/original${movieFromApi.poster_path}`
+        : undefined,
+      releaseDate: new Date(movieFromApi.release_date),
+      synopsis: movieFromApi.overview,
+    };
+
+    await this.prisma.movie.create({
+      data: movieToSave,
+    });
+    logger.info(`Saved 1 movie to DB`);
+
+    return;
+  }
 
   async searchForMovieByTitle(title: string) {
     logger.info('Searching for movie by title: ' + title);
@@ -54,60 +86,16 @@ export class MovieService {
       where: { id: parseInt(id) },
     });
 
-    if (movieFromDb) {
-      logger.info(`Found movie with id ${id} in DB`);
-      return movieFromDb;
-    }
-
-    const movieFromApi = await this.theMovieDb.getMovieById(parseInt(id));
-    const movieToSave: Prisma.MovieCreateInput = {
-      id: movieFromApi.id,
-      title: movieFromApi.original_title,
-      backdropUrl: movieFromApi.backdrop_path
-        ? `https://image.tmdb.org/t/p/original${movieFromApi.backdrop_path}`
-        : undefined,
-      posterUrl: movieFromApi.poster_path
-        ? `https://image.tmdb.org/t/p/original${movieFromApi.poster_path}`
-        : undefined,
-      releaseDate: new Date(movieFromApi.release_date),
-      synopsis: movieFromApi.overview,
-    };
-
-    const savedMovie = await this.prisma.movie.create({
-      data: movieToSave,
-    });
-    logger.info(`Saved 1 movie to DB`);
-
-    return savedMovie;
+    logger.info(`Found movie with id ${id} in DB`);
+    return movieFromDb;
   }
 
   async rateMovieById(id: string, action: string, userId: number) {
     logger.info(`User ${userId} ${action} movie ${id}`);
     // Make sure the movie exists
-    let movieFromDb = await this.prisma.movie.findUnique({
+    const movieFromDb = await this.prisma.movie.findUnique({
       where: { id: parseInt(id) },
     });
-
-    if (!movieFromDb) {
-      logger.warn(`Did not find movie with id ${id} in DB`);
-      const movieFromApi = await this.theMovieDb.getMovieById(parseInt(id));
-      const movieToSave: Prisma.MovieCreateInput = {
-        id: movieFromApi.id,
-        title: movieFromApi.original_title,
-        backdropUrl: movieFromApi.backdrop_path
-          ? `https://image.tmdb.org/t/p/original${movieFromApi.backdrop_path}`
-          : undefined,
-        posterUrl: movieFromApi.poster_path
-          ? `https://image.tmdb.org/t/p/original${movieFromApi.poster_path}`
-          : undefined,
-        releaseDate: new Date(movieFromApi.release_date),
-        synopsis: movieFromApi.overview,
-      };
-      movieFromDb = await this.prisma.movie.create({
-        data: movieToSave,
-      });
-      logger.info(`Saved 1 movie to DB`);
-    }
 
     // Find out if user already rated this movie
     const existingRating = await this.prisma.userMovieRating.findFirst({

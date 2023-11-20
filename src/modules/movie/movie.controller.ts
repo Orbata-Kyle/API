@@ -22,6 +22,8 @@ export class MovieController {
 
   @Get(':id')
   async getMovieById(@Param('id') id: string) {
+    await this.movieService.ensureMovieInDb(Number(id));
+
     return this.movieService.getMovieById(id);
   }
 
@@ -36,6 +38,9 @@ export class MovieController {
     if (!['liked', 'disliked', 'unseen'].includes(action)) {
       throw new BadRequestException('Invalid action');
     }
+
+    await this.movieService.ensureMovieInDb(Number(id));
+
     return this.movieService.rateMovieById(id, action, userId);
   }
 }
