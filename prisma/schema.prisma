@@ -5,28 +5,31 @@ generator client {
 datasource db {
   provider     = "mysql"
   url          = env("DATABASE_URL")
-  relationMode = "prisma"
+  relationMode = "foreignKeys"
 }
 
 model Movie {
-  id              Int               @id
+  id              Int                @id
   title           String
-  posterUrl       String?           @db.Text
-  backdropUrl     String?           @db.Text
-  synopsis        String?           @db.Text
-  releaseDate     DateTime?         @db.Date
+  posterUrl       String?            @db.Text
+  backdropUrl     String?            @db.Text
+  synopsis        String?            @db.Text
+  releaseDate     DateTime?          @db.Date
   UserMovieRating UserMovieRating[]
+  UserMoviePairs1 TournamentRating[] @relation("movie1")
+  UserMoviePairs2 TournamentRating[] @relation("movie2")
 
   @@index([title])
 }
 
 model User {
-  id              Int               @id @default(autoincrement())
+  id              Int                @id @default(autoincrement())
   name            String?
-  email           String            @unique
+  email           String             @unique
   hash            String
-  admin           Boolean           @default(false)
+  admin           Boolean            @default(false)
   UserMovieRating UserMovieRating[]
+  UserMoviePairs  TournamentRating[]
 }
 
 model UserMovieRating {
@@ -39,4 +42,20 @@ model UserMovieRating {
 
   @@index([movieId])
   @@index([userId])
+}
+
+model TournamentRating {
+  id       Int   @id @default(autoincrement())
+  userId   Int
+  movie1Id Int
+  movie2Id Int
+  winnerId Int // The movieId of the movie the user preferred
+  user     User  @relation(fields: [userId], references: [id])
+  movie1   Movie @relation(fields: [movie1Id], references: [id], name: "movie1")
+  movie2   Movie @relation(fields: [movie2Id], references: [id], name: "movie2")
+
+  @@unique([userId, movie1Id, movie2Id])
+  @@index([userId])
+  @@index([movie2Id])
+  @@index([movie1Id])
 }
