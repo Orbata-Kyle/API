@@ -1,7 +1,6 @@
 import { AxiosError } from 'axios';
 import {
   Catch,
-  ExceptionFilter,
   HttpException,
   ArgumentsHost,
   HttpStatus,

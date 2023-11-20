@@ -1,4 +1,4 @@
-import { PrismaService } from 'src/prisma/prisma.service';
+import { PrismaService } from '../../../prisma/prisma.service';
 import { TournamentGraph } from './tournament-graph';
 
 export class TournamentGraphCache {
@@ -25,7 +25,7 @@ export class TournamentGraphCache {
   }
 
   private async createGraphForUser(userId: number): Promise<TournamentGraph> {
-    const graph = new TournamentGraph(this.prismaService);
+    const graph = new TournamentGraph();
     const preferences = await this.prismaService.tournamentRating.findMany({
       where: { userId },
     });

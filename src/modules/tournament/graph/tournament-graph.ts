@@ -1,15 +1,12 @@
-import { PrismaService } from 'src/prisma/prisma.service';
-import logger from 'src/utils/logging/winston-config';
+import logger from '../../../utils/logging/winston-config';
 
 export class TournamentGraph {
-  private prismaService: PrismaService;
   private adjacencyList: Map<number, Set<number>>; // Map of movieId to Set of movieIds it is preferred over
   private ranks: Map<number, number>; // Map of movieId to rank
   private newPreference = false; // True after a new preference is added, to invalidate current cached ranks
 
-  constructor(prismaService: PrismaService) {
+  constructor() {
     this.adjacencyList = new Map();
-    this.prismaService = prismaService;
   }
 
   // The one and only place to change graph cache

@@ -4,7 +4,7 @@ import { TournamentService } from './tournament.service';
 import { TournamentController } from './tournament.controller';
 import { TournamentGraphService } from './graph/tournament-graph.service';
 import { MovieService } from '../movie/movie.service';
-import { TheMovieDb } from 'src/services/the-movie-db.service';
+import { TheMovieDb } from '../../services/the-movie-db.service';
 
 @Module({
   imports: [],

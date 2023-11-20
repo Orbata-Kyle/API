@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { TournamentGraphService } from './graph/tournament-graph.service';
-import logger from 'src/utils/logging/winston-config';
+import logger from '../../utils/logging/winston-config';
 import { TournamentRating } from '@prisma/client';
 
 @Injectable()

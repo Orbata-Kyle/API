@@ -1,9 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service'; // Assuming you have a PrismaService
 import { TournamentGraphCache } from './tournament-graph-cache';
-import { TournamentRating } from '@prisma/client';
-import logger from 'src/utils/logging/winston-config';
-import e from 'express';
 
 @Injectable()
 export class TournamentGraphService {

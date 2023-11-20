@@ -3,29 +3,17 @@ import {
   Get,
   Param,
   ParseIntPipe,
-  Post,
-  Query,
   UseGuards,
 } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { JwtService } from '@nestjs/jwt';
 import { JwtGuard } from '../../modules/auth/guard';
-import { PrismaService } from '../../prisma/prisma.service';
 import { GetUser } from '../../modules/auth/decorator';
-import { User } from '@prisma/client';
 import { SafeUser } from '../../types';
-import logger from '../../utils/logging/winston-config';
 import { JwtAdminGuard } from '../../modules/auth/guard/jwt-admin.guard';
 import { UserService } from './user.service';
 
 @Controller('user')
 export class UserController {
-  constructor(
-    private readonly prisma: PrismaService,
-    private jwtService: JwtService,
-    private config: ConfigService,
-    private userService: UserService,
-  ) {}
+  constructor(private userService: UserService) {}
 
   @UseGuards(JwtGuard)
   @Get()

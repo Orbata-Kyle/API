@@ -1,8 +1,6 @@
-import { Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
+import { Controller, Get, Post } from '@nestjs/common';
 import { SimilarityService } from './services/similarity.service';
 import { PrismaService } from './prisma/prisma.service';
-import { TheMovieDb } from './services/the-movie-db.service';
-import type { Prisma } from '@prisma/client';
 import logger from './utils/logging/winston-config';
 
 @Controller()
@@ -38,17 +36,5 @@ export class AppController {
     }
 
     return { users };
-  }
-
-  @Get('/movies')
-  async getMovies() {
-    const movies = await this.prisma.movie.findMany();
-
-    return [{ movies }];
-  }
-
-  @Post('/movies')
-  addMovie(body) {
-    return [];
   }
 }

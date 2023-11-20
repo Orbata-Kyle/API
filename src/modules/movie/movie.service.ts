@@ -1,14 +1,4 @@
-import {
-  BadRequestException,
-  Controller,
-  Get,
-  Injectable,
-  InternalServerErrorException,
-  Param,
-  Post,
-  Query,
-  UseGuards,
-} from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import type { Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { TheMovieDb } from '../../services/the-movie-db.service';

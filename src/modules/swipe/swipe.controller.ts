@@ -1,13 +1,4 @@
-import {
-  BadRequestException,
-  Controller,
-  Get,
-  Param,
-  Post,
-  Query,
-  UseGuards,
-} from '@nestjs/common';
-import type { Prisma } from '@prisma/client';
+import { Controller, Get, UseGuards } from '@nestjs/common';
 import { GetUser } from '../../modules/auth/decorator';
 import { JwtGuard } from '../../modules/auth/guard';
 import { SwipeService } from './swipe.service';

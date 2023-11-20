@@ -1,12 +1,4 @@
-import {
-  Body,
-  Controller,
-  Get,
-  ParseIntPipe,
-  Post,
-  Query,
-  UseGuards,
-} from '@nestjs/common';
+import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
 import { GetUser } from '../../modules/auth/decorator';
 import { JwtGuard } from '../../modules/auth/guard';
 import { TournamentService } from './tournament.service';
