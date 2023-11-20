@@ -18,6 +18,7 @@ export class TournamentGraph {
       this.adjacencyList.set(loserId, new Set());
     }
     if (!this.adjacencyList.get(winnerId).has(loserId)) {
+      // Update graph if this is a new differing preference on same movies
       if (this.adjacencyList.get(loserId)!.has(winnerId)) {
         this.adjacencyList.get(loserId)!.delete(winnerId);
       }
@@ -35,7 +36,7 @@ export class TournamentGraph {
       return this.ranks;
     }
 
-    // Page Rank algorithm
+    // Page Rank algorithm, without considering damping and thus random surfing, this is not about websites after all
     let ranks = new Map<number, number>();
     const totalNodes = this.adjacencyList.size;
 
@@ -56,7 +57,7 @@ export class TournamentGraph {
       });
     });
 
-    // Iterate to compute ranks
+    // Iterate to compute ranks and converge
     for (let i = 0; i < 25; i++) {
       const newRanks = new Map<number, number>();
 

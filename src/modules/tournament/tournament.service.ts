@@ -25,7 +25,7 @@ export class TournamentService {
       return rankings.get(b.id)! - rankings.get(a.id)!;
     });
 
-    logger.info(`Returning ${movies.length} movie rankins for user ${userId}`);
+    logger.info(`Returning ${movies.length} movie rankings for user ${userId}`);
     return movies;
   }
 
