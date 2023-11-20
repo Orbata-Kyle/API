@@ -22,17 +22,20 @@ export class TournamentController {
 
   @UseGuards(JwtGuard)
   @Get('rankings')
-  async getUsersMovieRankings(@GetUser('id') userId: number) {
-    return this.tournamentService.getUsersMovieRankings(userId);
+  async getUsersTournamentRankings(@GetUser('id') userId: number) {
+    return this.tournamentService.getUsersTournamentRankings(userId);
   }
 
   @UseGuards(JwtGuard)
   @Post('rank')
-  async rank(@Body() dto: RankDto, @GetUser('id') userId: number) {
+  async tournamentRankMovieForUser(
+    @Body() dto: RankDto,
+    @GetUser('id') userId: number,
+  ) {
     await this.movieService.ensureMovieInDb(dto.winnerId);
     await this.movieService.ensureMovieInDb(dto.looserId);
 
-    return this.tournamentService.rankMovieForUser(
+    return this.tournamentService.tournamentRankMovieForUser(
       userId,
       dto.winnerId,
       dto.looserId,
