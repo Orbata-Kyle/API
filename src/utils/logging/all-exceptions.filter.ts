@@ -1,10 +1,5 @@
 import { AxiosError } from 'axios';
-import {
-  Catch,
-  HttpException,
-  ArgumentsHost,
-  HttpStatus,
-} from '@nestjs/common';
+import { Catch, HttpException, ArgumentsHost, HttpStatus } from '@nestjs/common';
 import logger from '../../utils/logging/winston-config';
 import { BaseExceptionFilter } from '@nestjs/core';
 
@@ -25,11 +20,7 @@ export class AllExceptionsFilter extends BaseExceptionFilter {
         statusCode: exception.response?.status,
         statusText: exception.response?.data?.status_message,
       };
-      logger.error(
-        `${request.method} ${request.url} AxiosError: ${JSON.stringify(
-          message,
-        )}`,
-      );
+      logger.error(`${request.method} ${request.url} AxiosError: ${JSON.stringify(message)}`);
     } else if (exception instanceof Error) {
       const message = exception.message;
       logger.error(`${request.method} ${request.url} Error: ${message}`);

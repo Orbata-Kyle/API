@@ -11,9 +11,7 @@ export class TournamentGraphService {
   }
 
   // Returns users tournament rankins as a map of movieId -> ranking
-  async getUsersTournamentRankings(
-    userId: number,
-  ): Promise<Map<number, number>> {
+  async getUsersTournamentRankings(userId: number): Promise<Map<number, number>> {
     const userGraph = await this.cache.getGraphForUser(userId);
     const rankings = userGraph.computeRankings();
 
@@ -29,9 +27,6 @@ export class TournamentGraphService {
   ): Promise<void> {
     // Add to graph cache
     const userGraph = await this.cache.getGraphForUser(userId);
-    userGraph.addPreference(
-      winnerId,
-      movie1Id === winnerId ? movie2Id : movie1Id,
-    );
+    userGraph.addPreference(winnerId, movie1Id === winnerId ? movie2Id : movie1Id);
   }
 }

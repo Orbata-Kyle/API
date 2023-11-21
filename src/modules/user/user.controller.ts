@@ -1,10 +1,4 @@
-import {
-  Controller,
-  Get,
-  Param,
-  ParseIntPipe,
-  UseGuards,
-} from '@nestjs/common';
+import { Controller, Get, Param, ParseIntPipe, UseGuards } from '@nestjs/common';
 import { JwtGuard } from '../../modules/auth/guard';
 import { GetUser } from '../../modules/auth/decorator';
 import { SafeUser } from '../../types';

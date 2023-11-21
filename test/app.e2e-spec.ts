@@ -47,8 +47,7 @@ describe('App e2e', () => {
       },
     });
 
-    adminAt = (await auth.signToken(adminUser.id, adminUser.email))
-      .access_token;
+    adminAt = (await auth.signToken(adminUser.id, adminUser.email)).access_token;
   });
 
   afterAll(async () => {
@@ -84,18 +83,10 @@ describe('App e2e', () => {
         return pactum.spec().post('/auth/signup').expectStatus(400);
       });
       it('should signup', () => {
-        return pactum
-          .spec()
-          .post('/auth/signup')
-          .withBody(dto)
-          .expectStatus(201);
+        return pactum.spec().post('/auth/signup').withBody(dto).expectStatus(201);
       });
       it('should throw if email taken', () => {
-        return pactum
-          .spec()
-          .post('/auth/signup')
-          .withBody(dto)
-          .expectStatus(403);
+        return pactum.spec().post('/auth/signup').withBody(dto).expectStatus(403);
       });
     });
 
@@ -122,12 +113,7 @@ describe('App e2e', () => {
         return pactum.spec().post('/auth/signin').expectStatus(400);
       });
       it('should signin', () => {
-        return pactum
-          .spec()
-          .post('/auth/signin')
-          .withBody(dto)
-          .expectStatus(200)
-          .stores('userAt', 'access_token');
+        return pactum.spec().post('/auth/signin').withBody(dto).expectStatus(200).stores('userAt', 'access_token');
       });
     });
   });
@@ -173,25 +159,15 @@ describe('App e2e', () => {
         await assertMovieExistsInDb();
       });
       it('Should search for a movie by empty title', () => {
-        return pactum
-          .spec()
-          .get('/movie/search')
-          .withQueryParams('title', '')
-          .expectStatus(200)
-          .expectBody([]);
+        return pactum.spec().get('/movie/search').withQueryParams('title', '').expectStatus(200).expectBody([]);
       });
     });
 
     describe('getMovieById', () => {
       it('Should get a movie by ID', async () => {
-        await pactum
-          .spec()
-          .get('/movie/{id}')
-          .withPathParams('id', '100')
-          .expectStatus(200)
-          .expectJsonLike({
-            id: 100,
-          });
+        await pactum.spec().get('/movie/{id}').withPathParams('id', '100').expectStatus(200).expectJsonLike({
+          id: 100,
+        });
 
         await assertMovieExistsInDb(100);
       });
@@ -377,26 +353,18 @@ describe('App e2e', () => {
           .expectBodyContains('title')
           .expect((res) => {
             if (JSON.stringify(res.res.body).includes(prevMovieId)) {
-              throw new Error(
-                'Got the same movie as before, even though it was rated',
-              );
+              throw new Error('Got the same movie as before, even though it was rated');
             }
           });
       });
     });
   });
 
-  async function assertMovieExistsInDb(
-    id?: number,
-    maxAttempts = 3,
-    delay = 200,
-  ) {
+  async function assertMovieExistsInDb(id?: number, maxAttempts = 3, delay = 200) {
     let attempts = 0;
 
     while (attempts < maxAttempts) {
-      const movies = await prisma.movie.findMany(
-        id ? { where: { id: id } } : null,
-      );
+      const movies = await prisma.movie.findMany(id ? { where: { id: id } } : null);
       if (id && movies.length > 0) {
         return; // Movie with specific id found, exit the function
       } else if (!id && movies.length > 0) {
@@ -409,11 +377,7 @@ describe('App e2e', () => {
     }
 
     // If the loop completes without returning, throw an error
-    throw new Error(
-      `Movie with ${
-        id ? 'id ' + id : 'any id'
-      } not found in database after ${maxAttempts} attempts.`,
-    );
+    throw new Error(`Movie with ${id ? 'id ' + id : 'any id'} not found in database after ${maxAttempts} attempts.`);
   }
 
   async function assertUserMovieRatingExistsInDb(
@@ -429,19 +393,11 @@ describe('App e2e', () => {
     while (attempts < maxAttempts) {
       const ratings = await prisma.userMovieRating.findMany(query);
       if (ratings.length > 1) {
-        throw new Error(
-          `Multiple ratings found for user ${userIdTemp} and movie ${movieId}`,
-        );
+        throw new Error(`Multiple ratings found for user ${userIdTemp} and movie ${movieId}`);
       }
-      if (
-        ratings.length > 0 &&
-        ratings[0].likedStatus === expectedLikedStatus
-      ) {
+      if (ratings.length > 0 && ratings[0].likedStatus === expectedLikedStatus) {
         return; // Rating with specified likedStatus and movieId for userIdTemp found, exit the function
-      } else if (
-        ratings.length > 0 &&
-        ratings[0].likedStatus !== expectedLikedStatus
-      ) {
+      } else if (ratings.length > 0 && ratings[0].likedStatus !== expectedLikedStatus) {
         throw new Error(
           `Rating with movieId ${movieId} for user ${userIdTemp} found in database but with wrong likedStatus.`,
         );

@@ -8,10 +8,7 @@ export class SwipeService {
   private popularMoviesCache: Prisma.MovieCreateInput[] = [];
   private popularMoviesCacheLastFetched: Date | null = null;
 
-  constructor(
-    private readonly prisma: PrismaService,
-    private readonly theMovieDb: TheMovieDb,
-  ) {}
+  constructor(private readonly prisma: PrismaService, private readonly theMovieDb: TheMovieDb) {}
 
   private async refreshPopularMovies() {
     const now = new Date();
@@ -39,9 +36,7 @@ export class SwipeService {
       },
     });
 
-    const alreadyWatchedMovieIds = new Set(
-      alreadyWatchedMovies.map((movie) => movie.movieId),
-    );
+    const alreadyWatchedMovieIds = new Set(alreadyWatchedMovies.map((movie) => movie.movieId));
 
     const filteredMovie = this.popularMoviesCache.find((movie) => {
       return !alreadyWatchedMovieIds.has(movie.id);

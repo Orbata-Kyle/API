@@ -77,9 +77,7 @@ export class TournamentGraph {
 
     this.ranks = ranks;
     this.newPreference = false;
-    logger.info(
-      'Computed new rankings: ' + JSON.stringify(Array.from(ranks.entries())),
-    );
+    logger.info('Computed new rankings: ' + JSON.stringify(Array.from(ranks.entries())));
     return ranks;
   }
 }

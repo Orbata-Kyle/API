@@ -6,10 +6,7 @@ import logger from '../../utils/logging/winston-config';
 
 @Injectable()
 export class MovieService {
-  constructor(
-    private readonly prisma: PrismaService,
-    private readonly theMovieDb: TheMovieDb,
-  ) {}
+  constructor(private readonly prisma: PrismaService, private readonly theMovieDb: TheMovieDb) {}
 
   async ensureMovieInDb(id: number): Promise<void> {
     const movieFromDb = await this.prisma.movie.findUnique({
@@ -54,12 +51,8 @@ export class MovieService {
         moviesToSave.push({
           id: movie.id,
           title: movie.original_title,
-          backdropUrl: movie.backdrop_path
-            ? `https://image.tmdb.org/t/p/original${movie.backdrop_path}`
-            : undefined,
-          posterUrl: movie.poster_path
-            ? `https://image.tmdb.org/t/p/original${movie.poster_path}`
-            : undefined,
+          backdropUrl: movie.backdrop_path ? `https://image.tmdb.org/t/p/original${movie.backdrop_path}` : undefined,
+          posterUrl: movie.poster_path ? `https://image.tmdb.org/t/p/original${movie.poster_path}` : undefined,
           releaseDate: new Date(movie.release_date),
           synopsis: movie.overview,
         });

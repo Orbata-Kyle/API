@@ -18,10 +18,7 @@ export class PrismaService extends PrismaClient implements OnModuleInit {
     });
   }
 
-  async saveMoviesToDb(
-    movies: Prisma.MovieCreateManyInput[],
-    skipDuplicates = true,
-  ) {
+  async saveMoviesToDb(movies: Prisma.MovieCreateManyInput[], skipDuplicates = true) {
     const savedMovies = await this.movie.createMany({
       data: movies,
       skipDuplicates,
@@ -32,15 +29,10 @@ export class PrismaService extends PrismaClient implements OnModuleInit {
   }
 
   async cleanDb() {
-    if (this.config.get('ENV') !== 'test')
-      throw new Error('Cannot clean whole db in non-test environment');
+    if (this.config.get('ENV') !== 'test') throw new Error('Cannot clean whole db in non-test environment');
     else {
       logger.info('Cleaning DB');
-      return this.$transaction([
-        this.userMovieRating.deleteMany(),
-        this.movie.deleteMany(),
-        this.user.deleteMany(),
-      ]);
+      return this.$transaction([this.userMovieRating.deleteMany(), this.movie.deleteMany(), this.user.deleteMany()]);
     }
   }
 }

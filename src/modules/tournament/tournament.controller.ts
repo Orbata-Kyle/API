@@ -7,10 +7,7 @@ import { MovieService } from '../movie/movie.service';
 
 @Controller('tournament')
 export class TournamentController {
-  constructor(
-    private readonly tournamentService: TournamentService,
-    private readonly movieService: MovieService,
-  ) {}
+  constructor(private readonly tournamentService: TournamentService, private readonly movieService: MovieService) {}
 
   @UseGuards(JwtGuard)
   @Get('rankings')
@@ -20,17 +17,10 @@ export class TournamentController {
 
   @UseGuards(JwtGuard)
   @Post('rank')
-  async tournamentRankMovieForUser(
-    @Body() dto: RankDto,
-    @GetUser('id') userId: number,
-  ) {
+  async tournamentRankMovieForUser(@Body() dto: RankDto, @GetUser('id') userId: number) {
     await this.movieService.ensureMovieInDb(dto.winnerId);
     await this.movieService.ensureMovieInDb(dto.loserId);
 
-    return this.tournamentService.tournamentRankMovieForUser(
-      userId,
-      dto.winnerId,
-      dto.loserId,
-    );
+    return this.tournamentService.tournamentRankMovieForUser(userId, dto.winnerId, dto.loserId);
   }
 }

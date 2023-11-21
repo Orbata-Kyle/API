@@ -1,12 +1,4 @@
-import {
-  BadRequestException,
-  Controller,
-  Get,
-  Param,
-  Post,
-  Query,
-  UseGuards,
-} from '@nestjs/common';
+import { BadRequestException, Controller, Get, Param, Post, Query, UseGuards } from '@nestjs/common';
 import { GetUser } from '../../modules/auth/decorator';
 import { JwtGuard } from '../../modules/auth/guard';
 import { MovieService } from './movie.service';
@@ -29,11 +21,7 @@ export class MovieController {
 
   @UseGuards(JwtGuard)
   @Post(':id/rate/:action')
-  async rateMovieById(
-    @Param('id') id: string,
-    @Param('action') action: string,
-    @GetUser('id') userId: number,
-  ) {
+  async rateMovieById(@Param('id') id: string, @Param('action') action: string, @GetUser('id') userId: number) {
     // Make sure the action is valid
     if (!['liked', 'disliked', 'unseen'].includes(action)) {
       throw new BadRequestException('Invalid action');

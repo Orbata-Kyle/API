@@ -43,11 +43,7 @@ export class RBO {
     for (let i = 1; i < d; i++) {
       summa += Math.pow(p, i) / i;
     }
-    return (
-      1 -
-      Math.pow(p, d - 1) +
-      ((1 - p) / p) * d * (Math.log(1 / (1 - p)) - summa)
-    );
+    return 1 - Math.pow(p, d - 1) + ((1 - p) / p) * d * (Math.log(1 / (1 - p)) - summa);
   }
 
   calculate(s: any[], t: any[]) {
@@ -99,12 +95,7 @@ export class RBO {
     if (this.shortDepth == -1) {
       this.endShort();
     }
-    return (
-      this.rbo +
-      ((this.overlap - this.shortOverlap) / this.depth +
-        this.shortOverlap / this.shortDepth) *
-        pl
-    );
+    return this.rbo + ((this.overlap - this.shortOverlap) / this.depth + this.shortOverlap / this.shortDepth) * pl;
   }
 
   endShort() {
@@ -124,9 +115,6 @@ export class RBO {
     this.depth++;
     this.wgt *= this.p;
     this.rbo += (this.overlap / this.depth) * this.wgt;
-    this.rbo +=
-      ((this.shortOverlap * (this.depth - this.shortDepth)) /
-        (this.depth * this.shortDepth)) *
-      this.wgt;
+    this.rbo += ((this.shortOverlap * (this.depth - this.shortDepth)) / (this.depth * this.shortDepth)) * this.wgt;
   }
 }

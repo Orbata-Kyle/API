@@ -12,8 +12,7 @@ export class TournamentService {
   ) {}
 
   async getUsersTournamentRankings(userId: number) {
-    const rankings =
-      await this.tournamentGraphService.getUsersTournamentRankings(userId);
+    const rankings = await this.tournamentGraphService.getUsersTournamentRankings(userId);
 
     // Get movies from prisma
     const movies = await this.prismaService.movie.findMany({
@@ -29,21 +28,12 @@ export class TournamentService {
     return movies;
   }
 
-  async tournamentRankMovieForUser(
-    userId: number,
-    winnerId: number,
-    loserId: number,
-  ) {
+  async tournamentRankMovieForUser(userId: number, winnerId: number, loserId: number) {
     // Add to database first to make sure it's working
     await this.addTournamentRankToDatabase(userId, winnerId, loserId);
 
     // Then add to graph
-    await this.tournamentGraphService.tournamentRankMovieForUser(
-      userId,
-      winnerId,
-      loserId,
-      winnerId,
-    );
+    await this.tournamentGraphService.tournamentRankMovieForUser(userId, winnerId, loserId, winnerId);
 
     return 'Successfully ranked movie';
   }
@@ -67,33 +57,21 @@ export class TournamentService {
     return existingRating ?? undefined;
   }
 
-  private async addTournamentRankToDatabase(
-    userId: number,
-    winnerId: number,
-    loserId: number,
-  ): Promise<void> {
-    const existingPreference = await this.findExistingPreference(
-      userId,
-      winnerId,
-      loserId,
-    );
+  private async addTournamentRankToDatabase(userId: number, winnerId: number, loserId: number): Promise<void> {
+    const existingPreference = await this.findExistingPreference(userId, winnerId, loserId);
 
     // If existingPreference undefined -> new preference, if not equal to winnerId -> update, else nothing
     if (!existingPreference) {
       await this.prismaService.tournamentRating.create({
         data: { userId, movie1Id: winnerId, movie2Id: loserId, winnerId },
       });
-      logger.info(
-        `Added new preference for user ${userId}, for winner ${winnerId} and loser ${loserId}`,
-      );
+      logger.info(`Added new preference for user ${userId}, for winner ${winnerId} and loser ${loserId}`);
     } else if (existingPreference.winnerId !== winnerId) {
       await this.prismaService.tournamentRating.update({
         where: { id: existingPreference.id },
         data: { winnerId },
       });
-      logger.info(
-        `Updated preference for user ${userId}, for winner ${winnerId} and loser ${loserId}`,
-      );
+      logger.info(`Updated preference for user ${userId}, for winner ${winnerId} and loser ${loserId}`);
     }
   }
 }

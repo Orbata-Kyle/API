@@ -39,10 +39,7 @@ export class SimilarityService {
       return sum + Math.pow(rank1 - rank2, 2);
     }, 0);
 
-    const spearmanRank =
-      1 -
-      (6 * sumOfSquaredDifferences) /
-        (commonLength * (Math.pow(commonLength, 2) - 1));
+    const spearmanRank = 1 - (6 * sumOfSquaredDifferences) / (commonLength * (Math.pow(commonLength, 2) - 1));
     return spearmanRank;
   }
 

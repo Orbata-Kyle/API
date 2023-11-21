@@ -12,10 +12,7 @@ export class TournamentGraphCache {
   }
 
   public async getGraphForUser(userId: number): Promise<TournamentGraph> {
-    if (
-      this.cache[userId] &&
-      this.cache[userId].timestamp > Date.now() - 1000 * 60 * 60 * 24
-    ) {
+    if (this.cache[userId] && this.cache[userId].timestamp > Date.now() - 1000 * 60 * 60 * 24) {
       return this.cache[userId].graph;
     } else {
       const graph = await this.createGraphForUser(userId);
@@ -31,10 +28,7 @@ export class TournamentGraphCache {
     });
 
     preferences.forEach((pref) => {
-      graph.addPreference(
-        pref.winnerId,
-        pref.movie1Id === pref.winnerId ? pref.movie2Id : pref.movie1Id,
-      );
+      graph.addPreference(pref.winnerId, pref.movie1Id === pref.winnerId ? pref.movie2Id : pref.movie1Id);
     });
 
     return graph;

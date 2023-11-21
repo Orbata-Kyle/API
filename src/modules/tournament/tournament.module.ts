@@ -9,12 +9,6 @@ import { TheMovieDb } from '../../services/the-movie-db.service';
 @Module({
   imports: [],
   controllers: [TournamentController],
-  providers: [
-    TournamentService,
-    PrismaService,
-    TournamentGraphService,
-    MovieService,
-    TheMovieDb,
-  ],
+  providers: [TournamentService, PrismaService, TournamentGraphService, MovieService, TheMovieDb],
 })
 export class TournamentModule {}

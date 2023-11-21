@@ -33,12 +33,8 @@ export class TheMovieDb {
     return {
       id: movie.id,
       title: movie.original_title,
-      backdropUrl: movie.backdrop_path
-        ? `https://image.tmdb.org/t/p/original${movie.backdrop_path}`
-        : undefined,
-      posterUrl: movie.poster_path
-        ? `https://image.tmdb.org/t/p/original${movie.poster_path}`
-        : undefined,
+      backdropUrl: movie.backdrop_path ? `https://image.tmdb.org/t/p/original${movie.backdrop_path}` : undefined,
+      posterUrl: movie.poster_path ? `https://image.tmdb.org/t/p/original${movie.poster_path}` : undefined,
       releaseDate: new Date(movie.release_date),
       synopsis: movie.overview,
     };
@@ -47,15 +43,12 @@ export class TheMovieDb {
   async getPopularMovies() {
     const url = new URL(`${this.apiBaseUrl}movie/popular`);
 
-    const response = await axios.get<{ page: number; results: MovieDbMovie[] }>(
-      url.toString(),
-      {
-        headers: {
-          Authorization: `Bearer ${this.apiKey}`,
-          Accept: 'application/json',
-        },
+    const response = await axios.get<{ page: number; results: MovieDbMovie[] }>(url.toString(), {
+      headers: {
+        Authorization: `Bearer ${this.apiKey}`,
+        Accept: 'application/json',
       },
-    );
+    });
 
     return response.data.results.map(this.toPrismaMovie);
   }
