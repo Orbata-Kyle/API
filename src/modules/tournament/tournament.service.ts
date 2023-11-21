@@ -47,9 +47,17 @@ export class TournamentService {
     // TODO: Make this depend on the user's preferences or where the movie counts in tournament rankins are lower
     // TODO: Rank unranked movie against established movie from middle of ranking to find place faster
     const liked = Math.random() < 0.5;
-    const userSwipedMovies = await this.prismaService.userMovieRating.findMany({
+    let userSwipedMovies = await this.prismaService.userMovieRating.findMany({
       where: { userId, likedStatus: liked ? 'liked' : 'disliked' },
     });
+    if (userSwipedMovies.length < 2) {
+      userSwipedMovies = await this.prismaService.userMovieRating.findMany({
+        where: { userId, likedStatus: liked ? 'disliked' : 'liked' },
+      });
+      if (userSwipedMovies.length < 2) {
+        return [];
+      }
+    }
     // Shuffle array to make matchups random
     userSwipedMovies.sort(() => Math.random() - 0.5);
     logger.info(
@@ -89,6 +97,10 @@ export class TournamentService {
           userSwipedMovies.findIndex((m) => m.movieId === matchupMovies[1].id),
           1,
         );
+        if (userSwipedMovies.length < 2) {
+          // No matchups left
+          return [];
+        }
       }
     }
     return matchupMovies;
@@ -128,8 +140,6 @@ export class TournamentService {
         lowestCountMovie.movieId = userSwipedMovie.movieId;
         lowestCountMovie.count = movieCounts.get(userSwipedMovie.movieId)!;
       }
-      console.log(lowestCountMovie);
-      console.log(secondLowestCountMovie);
     }
 
     const lowestMovies = await this.prismaService.movie.findMany({
