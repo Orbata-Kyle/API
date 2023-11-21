@@ -23,4 +23,10 @@ export class TournamentController {
 
     return this.tournamentService.tournamentRankMovieForUser(userId, dto.winnerId, dto.loserId);
   }
+
+  @UseGuards(JwtGuard)
+  @Get('matchup')
+  async getMatchup(@GetUser('id') userId: number) {
+    return this.tournamentService.getMatchup(userId);
+  }
 }

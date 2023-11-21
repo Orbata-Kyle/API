@@ -38,6 +38,79 @@ export class TournamentService {
     return 'Successfully ranked movie';
   }
 
+  async getMatchup(userId: number) {
+    const usersTournamentRanking = await this.prismaService.tournamentRating.findMany({
+      where: { userId },
+    });
+
+    // Ranomize if getting liked or disliked movies
+    // TODO: Make this depend on the user's preferences or where the movie counts in tournament rankins are lower
+    const liked = Math.random() < 0.5;
+    const userSwipedMovies = await this.prismaService.userMovieRating.findMany({
+      where: { userId, likedStatus: liked ? 'liked' : 'disliked' },
+    });
+    // Shuffle array to make matchups random
+    userSwipedMovies.sort(() => Math.random() - 0.5);
+    logger.info(
+      `Getting matchup of ${liked ? 'liked' : 'disliked'} movies for user ${userId} with ${
+        userSwipedMovies.length
+      } swiped movies`,
+    );
+
+    // Count how many times each movie has been ranked
+    const movieCounts = new Map<number, number>();
+    for (const ranking of usersTournamentRanking) {
+      if (!movieCounts.has(ranking.movie1Id)) {
+        movieCounts.set(ranking.movie1Id, 0);
+      }
+      if (!movieCounts.has(ranking.movie2Id)) {
+        movieCounts.set(ranking.movie2Id, 0);
+      }
+
+      movieCounts.set(ranking.movie1Id, movieCounts.get(ranking.movie1Id)! + 1);
+      movieCounts.set(ranking.movie2Id, movieCounts.get(ranking.movie2Id)! + 1);
+    }
+
+    // Find the two movies with the lowest count or no count
+    const lowestCountMovie: { movieId: number; count: number } = {
+      movieId: -1,
+      count: Number.MAX_SAFE_INTEGER,
+    };
+    const secondLowestCountMovie: { movieId: number; count: number } = {
+      movieId: -1,
+      count: Number.MAX_SAFE_INTEGER,
+    };
+    for (const userSwipedMovie of userSwipedMovies) {
+      if (
+        movieCounts.has(userSwipedMovie.movieId) &&
+        movieCounts.get(userSwipedMovie.movieId)! < lowestCountMovie.count
+      ) {
+        secondLowestCountMovie.movieId = lowestCountMovie.movieId;
+        secondLowestCountMovie.count = lowestCountMovie.count;
+        lowestCountMovie.movieId = userSwipedMovie.movieId;
+        lowestCountMovie.count = movieCounts.get(userSwipedMovie.movieId)!;
+      } else if (
+        movieCounts.has(userSwipedMovie.movieId) &&
+        movieCounts.get(userSwipedMovie.movieId)! < secondLowestCountMovie.count
+      ) {
+        secondLowestCountMovie.movieId = userSwipedMovie.movieId;
+        secondLowestCountMovie.count = movieCounts.get(userSwipedMovie.movieId)!;
+      } else if (!movieCounts.has(userSwipedMovie.movieId)) {
+        secondLowestCountMovie.movieId = lowestCountMovie.movieId;
+        secondLowestCountMovie.count = lowestCountMovie.count;
+        lowestCountMovie.movieId = userSwipedMovie.movieId;
+        lowestCountMovie.count = movieCounts.get(userSwipedMovie.movieId)!;
+      }
+      console.log(lowestCountMovie);
+      console.log(secondLowestCountMovie);
+    }
+
+    const lowestMovies = await this.prismaService.movie.findMany({
+      where: { id: { in: [lowestCountMovie.movieId, secondLowestCountMovie.movieId] } },
+    });
+    return lowestMovies;
+  }
+
   // Finds an existing rating for a user and returns the tournamentRating
   private async findExistingPreference(
     userId: number,
