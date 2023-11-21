@@ -51,9 +51,9 @@ model TournamentRating {
   movie2Id    Int
   winnerId    Int // The movieId of the movie the user preferred
   likedStatus String?
-  user        User    @relation(fields: [userId], references: [id])
-  movie1      Movie   @relation(fields: [movie1Id], references: [id], name: "movie1")
-  movie2      Movie   @relation(fields: [movie2Id], references: [id], name: "movie2")
+  user        User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  movie1      Movie   @relation(fields: [movie1Id], references: [id], name: "movie1", onDelete: Cascade)
+  movie2      Movie   @relation(fields: [movie2Id], references: [id], name: "movie2", onDelete: Cascade)
 
   @@unique([userId, movie1Id, movie2Id])
   @@index([userId])
