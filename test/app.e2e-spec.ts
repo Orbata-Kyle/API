@@ -187,57 +187,27 @@ describe('App e2e', () => {
       });
 
       it('Should rateMovieById with disliked', async () => {
-        await pactum
-          .spec()
-          .post('/movie/{id}/rate/{action}')
-          .withHeaders({
-            Authorization: 'Bearer $S{userAt}',
-          })
-          .withPathParams('id', '100')
-          .withPathParams('action', 'disliked')
-          .expectStatus(201);
+        await rateMovie('100', 'disliked');
 
         await assertUserMovieRatingExistsInDb(100, 'disliked');
       });
 
       it('Rate with "Unseen" and change previous rating to liked', async () => {
-        await pactum
-          .spec()
-          .post('/movie/{id}/rate/{action}')
-          .withHeaders({
-            Authorization: 'Bearer $S{userAt}',
-          })
-          .withPathParams('id', '100')
-          .withPathParams('action', 'liked')
-          .expectStatus(201);
+        await rateMovie('100', 'liked');
 
         await assertUserMovieRatingExistsInDb(100, 'liked');
       });
 
       it('Should rateMovieById with liked but get from API frist', async () => {
-        await pactum
-          .spec()
-          .post('/movie/{id}/rate/{action}')
-          .withHeaders({
-            Authorization: 'Bearer $S{userAt}',
-          })
-          .withPathParams('id', '101')
-          .withPathParams('action', 'liked')
-          .expectStatus(201);
+        await rateMovie('101', 'liked');
+        await rateMovie('102', 'liked');
 
         await assertUserMovieRatingExistsInDb(101, 'liked');
+        await assertUserMovieRatingExistsInDb(102, 'liked');
       });
 
       it('Rate with "Unseen" and change previous rating', async () => {
-        await pactum
-          .spec()
-          .post('/movie/{id}/rate/{action}')
-          .withHeaders({
-            Authorization: 'Bearer $S{userAt}',
-          })
-          .withPathParams('id', '101')
-          .withPathParams('action', 'unseen')
-          .expectStatus(201);
+        await rateMovie('101', 'unseen');
 
         await assertUserMovieRatingExistsInDb(101, 'unseen');
       });
@@ -330,14 +300,7 @@ describe('App e2e', () => {
       it('Rate previous movie then should get different NextMovieToSwipe', async () => {
         await pactum.sleep(200);
         // Rate this movie
-        await pactum
-          .spec()
-          .post('/movie/{id}/rate/{action}')
-          .withHeaders({
-            Authorization: 'Bearer $S{userAt}',
-          })
-          .withPathParams('id', '$S{movieId}')
-          .withPathParams('action', 'liked');
+        await rateMovie('$S{movieId}', 'liked');
 
         const prevMovieId = pactum.stash.getDataStore()['movieId'];
         expect(prevMovieId).toBeDefined();
@@ -358,6 +321,187 @@ describe('App e2e', () => {
           });
       });
     });
+  });
+
+  describe('Tournament', () => {
+    describe('rank', () => {
+      it('Should throw if winnerId and loserId are the same', () => {
+        return pactum
+          .spec()
+          .post('/tournament/rank')
+          .withHeaders({
+            Authorization: 'Bearer $S{userAt}',
+          })
+          .withBody({
+            winnerId: 100,
+            loserId: 100,
+          })
+          .expectStatus(400);
+      });
+
+      it('Should throw if user has not swiped both movies', () => {
+        return pactum
+          .spec()
+          .post('/tournament/rank')
+          .withHeaders({
+            Authorization: 'Bearer $S{userAt}',
+          })
+          .withBody({
+            winnerId: 100,
+            loserId: 103,
+          })
+          .expectStatus(400);
+      });
+
+      it('Should throw if user has not swiped both movies with the same status', () => {
+        return pactum
+          .spec()
+          .post('/tournament/rank')
+          .withHeaders({
+            Authorization: 'Bearer $S{userAt}',
+          })
+          .withBody({
+            winnerId: 100,
+            loserId: 101,
+          })
+          .expectStatus(400);
+      });
+
+      it('Should rank movie 100 over 102', async () => {
+        await pactum
+          .spec()
+          .post('/tournament/rank')
+          .withHeaders({
+            Authorization: 'Bearer $S{userAt}',
+          })
+          .withBody({
+            winnerId: 100,
+            loserId: 102,
+          })
+          .expectStatus(201);
+
+        await assertTournamentRatingExistsInDb(100, 102, 'liked');
+      });
+
+      it('Should update matchup to rank movie 102 over 100', async () => {
+        await pactum
+          .spec()
+          .post('/tournament/rank')
+          .withHeaders({
+            Authorization: 'Bearer $S{userAt}',
+          })
+          .withBody({
+            winnerId: 102,
+            loserId: 100,
+          })
+          .expectStatus(201);
+
+        await assertTournamentRatingExistsInDb(102, 100, 'liked');
+      });
+
+      it('Should dislike both movies, then rank them again but now in dislike list', async () => {
+        await rateMovie('102', 'disliked');
+        await rateMovie('100', 'disliked');
+
+        await playOutTournamentMatchup(102, 100);
+
+        await assertTournamentRatingExistsInDb(102, 100, 'disliked');
+        await assertTournamentRatingDoesntExistsInDb(102, 100, 'liked');
+      });
+
+      it('Should add some more movies to rankings for later', async () => {
+        await rateMovie('101', 'disliked');
+        await rateMovie('103', 'disliked');
+        await rateMovie('104', 'disliked');
+        await rateMovie('105', 'disliked');
+        await rateMovie('106', 'disliked');
+
+        await playOutTournamentMatchup(100, 101);
+        await playOutTournamentMatchup(102, 103);
+        await playOutTournamentMatchup(104, 105);
+        await playOutTournamentMatchup(100, 102);
+        await playOutTournamentMatchup(101, 103);
+        await playOutTournamentMatchup(104, 102);
+        await playOutTournamentMatchup(100, 104);
+        await playOutTournamentMatchup(101, 105);
+        await playOutTournamentMatchup(105, 103);
+        await playOutTournamentMatchup(102, 105);
+      });
+    });
+
+    describe('rankings', () => {
+      it('Should get rankings for disliked movies in right expected order', async () => {
+        let responseBody;
+        await pactum
+          .spec()
+          .get('/tournament/rankings/disliked')
+          .withHeaders({
+            Authorization: 'Bearer $S{userAt}',
+          })
+          .expectStatus(200)
+          .expectJsonLike([
+            {
+              id: 104,
+            },
+            {
+              id: 100,
+            },
+            {
+              id: 101,
+            },
+            {
+              id: 102,
+            },
+            {
+              id: 105,
+            },
+            {
+              id: 103,
+            },
+            {
+              id: 106,
+            },
+          ])
+          .toss()
+          .then((res) => {
+            responseBody = res.body;
+          });
+
+        for (let i = 1; i < responseBody.length; i++) {
+          if (i === responseBody.length - 1) {
+            if (responseBody[i].rank !== 'Unranked') {
+              throw new Error(`Rank of last item is not Unranked`);
+            }
+          } else if (parseFloat(responseBody[i].rank) > parseFloat(responseBody[i - 1].rank)) {
+            throw new Error(`Rank of item at index ${i} is not less than or equal to rank of previous item`);
+          }
+        }
+      });
+
+      it('Should get rankings for liked movies, which is just one unranked one', async () => {
+        let responseBody;
+        await pactum
+          .spec()
+          .get('/tournament/rankings/liked')
+          .withHeaders({
+            Authorization: 'Bearer $S{userAt}',
+          })
+          .expectStatus(200)
+          .expectJsonLike([
+            {
+              rank: 'Unranked',
+            },
+          ])
+          .toss()
+          .then((res) => {
+            responseBody = res.body;
+          });
+
+        // The one got from swiping from popular movies and then liked but never ranked
+        expect(responseBody.length).toBe(1);
+      });
+    });
+    // TODO: test getting matches, and that theres no duplicates if you rank them and that the first matches include the unranked ones
   });
 
   async function assertMovieExistsInDb(id?: number, maxAttempts = 3, delay = 200) {
@@ -412,5 +556,90 @@ describe('App e2e', () => {
     throw new Error(
       `Rating for movieId ${movieId} and user ${userIdTemp} not found in database after ${maxAttempts} attempts.`,
     );
+  }
+
+  async function assertTournamentRatingExistsInDb(
+    winnerId: number,
+    loserId: number,
+    likedStatus: string,
+    maxAttempts = 3,
+    delay = 200,
+  ) {
+    let attempts = 0;
+    const query = {
+      where: {
+        winnerId,
+        likedStatus,
+        OR: [
+          { movie1Id: winnerId, movie2Id: loserId },
+          { movie1Id: loserId, movie2Id: winnerId },
+        ],
+      },
+    };
+
+    while (attempts < maxAttempts) {
+      const rankings = await prisma.tournamentRating.findMany(query);
+      if (rankings.length > 1) {
+        throw new Error(`Multiple rankings found for winner ${winnerId} and loser ${loserId}`);
+      }
+      if (rankings.length > 0) {
+        return; // Ranking with specified winnerId and loserId found, exit the function
+      }
+
+      // Wait before the next attempt
+      await new Promise((resolve) => setTimeout(resolve, delay));
+      attempts++;
+    }
+
+    // If the loop completes without returning, throw an error
+    throw new Error(
+      `${likedStatus} ranking for winner ${winnerId} and loser ${loserId} not found in database after ${maxAttempts} attempts.`,
+    );
+  }
+
+  async function assertTournamentRatingDoesntExistsInDb(winnerId: number, loserId: number, likedStatus: string) {
+    const query = {
+      where: {
+        winnerId,
+        likedStatus,
+        OR: [
+          { movie1Id: winnerId, movie2Id: loserId },
+          { movie1Id: loserId, movie2Id: winnerId },
+        ],
+      },
+    };
+
+    const rankings = await prisma.tournamentRating.findMany(query);
+    if (rankings.length > 0) {
+      throw new Error(`Unexpected ranking found for winner ${winnerId} and loser ${loserId}`);
+    }
+
+    return;
+  }
+
+  async function playOutTournamentMatchup(winnerId: number, loserId: number) {
+    await pactum
+      .spec()
+      .post('/tournament/rank')
+      .withHeaders({
+        Authorization: 'Bearer $S{userAt}',
+      })
+      .withBody({
+        winnerId: winnerId,
+        loserId: loserId,
+      })
+      .expectStatus(201);
+  }
+
+  async function rateMovie(movieId: string, likedStatus: string) {
+    await pactum
+      .spec()
+      .post('/movie/{id}/rate/{action}')
+      .withHeaders({
+        Authorization: 'Bearer $S{userAt}',
+      })
+      .withPathParams('id', movieId)
+      .withPathParams('action', likedStatus)
+      .expectStatus(201);
   }
 });
