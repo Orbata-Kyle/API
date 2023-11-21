@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import type { Prisma } from '@prisma/client';
+import type { Prisma, UserMovieRating } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { TheMovieDb } from '../../services/the-movie-db.service';
 import logger from '../../utils/logging/winston-config';
@@ -73,7 +73,7 @@ export class MovieService {
     return movieFromDb;
   }
 
-  async rateMovieById(id: string, action: string, userId: number) {
+  async rateMovieById(id: string, action: string, userId: number): Promise<UserMovieRating> {
     logger.info(`User ${userId} ${action} movie ${id}`);
     // Make sure the movie exists
     const movieFromDb = await this.prisma.movie.findUnique({
@@ -86,11 +86,11 @@ export class MovieService {
     });
     if (existingRating) {
       logger.info(`User ${userId} already rated movie ${id}`);
-      await this.prisma.userMovieRating.update({
+      const updatedRating = await this.prisma.userMovieRating.update({
         where: { id: existingRating.id },
         data: { likedStatus: action },
       });
-      return existingRating;
+      return updatedRating;
     }
 
     const movieRating = await this.prisma.userMovieRating.create({
