@@ -72,6 +72,32 @@ export class TournamentService {
       movieCounts.set(ranking.movie2Id, movieCounts.get(ranking.movie2Id)! + 1);
     }
 
+    let matchupExists = true;
+    let matchupMovies: Movie[];
+    while (matchupExists) {
+      matchupMovies = await this.findMatchupMovies(movieCounts, userSwipedMovies);
+
+      const matchup = await this.findExistingPreference(userId, matchupMovies[0].id, matchupMovies[1].id);
+      matchupExists = matchup !== undefined;
+
+      // Remove the second best movie from the array so they don't get matched up again
+      if (matchupExists) {
+        logger.info(
+          `Matchup ${matchupMovies[0].id} and ${matchupMovies[1].id} already exists for user ${userId}, finding new matchup`,
+        );
+        userSwipedMovies.splice(
+          userSwipedMovies.findIndex((m) => m.movieId === matchupMovies[1].id),
+          1,
+        );
+      }
+    }
+    return matchupMovies;
+  }
+
+  private async findMatchupMovies(
+    movieCounts: Map<number, number>,
+    userSwipedMovies: UserMovieRating[],
+  ): Promise<Movie[]> {
     // Find the two movies with the lowest count or no count
     const lowestCountMovie: { movieId: number; count: number } = {
       movieId: -1,
@@ -108,6 +134,16 @@ export class TournamentService {
 
     const lowestMovies = await this.prismaService.movie.findMany({
       where: { id: { in: [lowestCountMovie.movieId, secondLowestCountMovie.movieId] } },
+    });
+    // Sort so that lowest count movie first
+    lowestMovies.sort((a, b) => {
+      if (a.id === lowestCountMovie.movieId) {
+        return -1;
+      } else if (b.id === lowestCountMovie.movieId) {
+        return 1;
+      } else {
+        return 0;
+      }
     });
     return lowestMovies;
   }
