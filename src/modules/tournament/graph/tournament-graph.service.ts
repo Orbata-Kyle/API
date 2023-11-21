@@ -29,9 +29,15 @@ export class TournamentGraphService {
     liked: boolean,
   ): Promise<void> {
     // Add to graph cache
-    const userGraph = liked
-      ? await this.cache.getLikeGraphForUser(userId)
-      : await this.cache.getDislikedGraphForUser(userId);
-    userGraph.addPreference(winnerId, movie1Id === winnerId ? movie2Id : movie1Id);
+    const userLikedGraph = await this.cache.getLikeGraphForUser(userId);
+    const userDisikedGraph = await this.cache.getDislikedGraphForUser(userId);
+
+    // Remove from other graph if it exists there already to keep data consistent with database
+    if (liked) {
+      userDisikedGraph.findAndRemovePreferenceCombination(movie1Id, movie2Id);
+    } else {
+      userLikedGraph.findAndRemovePreferenceCombination(movie1Id, movie2Id);
+    }
+    (liked ? userLikedGraph : userDisikedGraph).addPreference(winnerId, movie1Id === winnerId ? movie2Id : movie1Id);
   }
 }

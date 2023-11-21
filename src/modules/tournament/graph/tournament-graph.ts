@@ -9,6 +9,45 @@ export class TournamentGraph {
     this.adjacencyList = new Map();
   }
 
+  scanAndDeleteUnusedMovie(movieId: number) {
+    // Search if movieIds adjecency list itself is empty and if it is an edge in any other movieIds adjecency lists, if both false then delete it
+    if (this.adjacencyList.has(movieId) && this.adjacencyList.get(movieId)!.size === 0) {
+      let isUsed = false;
+      this.adjacencyList.forEach((edges, _) => {
+        if (edges.has(movieId)) {
+          isUsed = true;
+        }
+      });
+      if (!isUsed) {
+        this.adjacencyList.delete(movieId);
+      }
+    }
+  }
+
+  async hasPreferenceCombination(movie1Id: number, movie2Id: number): Promise<boolean> {
+    // return if the graph contains the edge movie1Id -> movie2Id or movie2Id -> movie1Id
+    return (
+      (this.adjacencyList.has(movie1Id) && this.adjacencyList.get(movie1Id)!.has(movie2Id)) ||
+      (this.adjacencyList.has(movie2Id) && this.adjacencyList.get(movie2Id)!.has(movie1Id))
+    );
+  }
+
+  async findAndRemovePreferenceCombination(movie1Id: number, movie2Id: number): Promise<boolean> {
+    if (this.adjacencyList.has(movie1Id) && this.adjacencyList.get(movie1Id)!.has(movie2Id)) {
+      this.adjacencyList.get(movie1Id)!.delete(movie2Id);
+      this.scanAndDeleteUnusedMovie(movie1Id);
+      this.scanAndDeleteUnusedMovie(movie2Id);
+      return true;
+    } else if (this.adjacencyList.has(movie2Id) && this.adjacencyList.get(movie2Id)!.has(movie1Id)) {
+      this.adjacencyList.get(movie2Id)!.delete(movie1Id);
+      this.scanAndDeleteUnusedMovie(movie1Id);
+      this.scanAndDeleteUnusedMovie(movie2Id);
+      return true;
+    } else {
+      return false;
+    }
+  }
+
   // The one and only place to change graph cache
   async addPreference(winnerId: number, loserId: number): Promise<void> {
     if (!this.adjacencyList.has(winnerId)) {

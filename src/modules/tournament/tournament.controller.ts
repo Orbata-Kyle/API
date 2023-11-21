@@ -4,7 +4,7 @@ import { JwtGuard } from '../../modules/auth/guard';
 import { TournamentService } from './tournament.service';
 import { RankDto } from './dto';
 import { MovieService } from '../movie/movie.service';
-import { PrismaService } from 'src/prisma/prisma.service';
+import { PrismaService } from '../../prisma/prisma.service';
 
 @Controller('tournament')
 export class TournamentController {
@@ -15,12 +15,12 @@ export class TournamentController {
   ) {}
 
   @UseGuards(JwtGuard)
-  @Get('rankings/:action')
-  async getUsersTournamentRankings(@GetUser('id') userId: number, @Param('action') action: string) {
-    if (!['liked', 'disliked'].includes(action)) {
-      throw new BadRequestException('Invalid action');
+  @Get('rankings/:likedStatus')
+  async getUsersTournamentRankings(@GetUser('id') userId: number, @Param('likedStatus') likedStatus: string) {
+    if (!['liked', 'disliked'].includes(likedStatus)) {
+      throw new BadRequestException('Invalid likedStatus');
     }
-    return this.tournamentService.getUsersTournamentRankings(userId, action === 'liked');
+    return this.tournamentService.getUsersTournamentRankings(userId, likedStatus === 'liked');
   }
 
   @UseGuards(JwtGuard)
@@ -29,8 +29,6 @@ export class TournamentController {
     if (dto.winnerId === dto.loserId) {
       throw new BadRequestException('Winner and loser cannot be the same movie');
     }
-    await this.movieService.ensureMovieInDb(dto.winnerId);
-    await this.movieService.ensureMovieInDb(dto.loserId);
 
     const swipedMovie1 = await this.prismaService.userMovieRating.findFirst({
       where: { userId, movieId: dto.winnerId },
