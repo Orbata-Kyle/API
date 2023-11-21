@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { TournamentGraphService } from './graph/tournament-graph.service';
 import logger from '../../utils/logging/winston-config';
-import { TournamentRating } from '@prisma/client';
+import { Movie, TournamentRating, UserMovieRating } from '@prisma/client';
 
 @Injectable()
 export class TournamentService {
@@ -11,8 +11,8 @@ export class TournamentService {
     private readonly tournamentGraphService: TournamentGraphService,
   ) {}
 
-  async getUsersTournamentRankings(userId: number) {
-    const rankings = await this.tournamentGraphService.getUsersTournamentRankings(userId);
+  async getUsersTournamentRankings(userId: number, liked: boolean): Promise<Movie[]> {
+    const rankings = await this.tournamentGraphService.getUsersTournamentRankings(userId, liked);
 
     // Get movies from prisma
     const movies = await this.prismaService.movie.findMany({
@@ -28,23 +28,24 @@ export class TournamentService {
     return movies;
   }
 
-  async tournamentRankMovieForUser(userId: number, winnerId: number, loserId: number) {
+  async tournamentRankMovieForUser(userId: number, winnerId: number, loserId: number, liked: boolean): Promise<string> {
     // Add to database first to make sure it's working
-    await this.addTournamentRankToDatabase(userId, winnerId, loserId);
+    await this.addTournamentRankToDatabase(userId, winnerId, loserId, liked);
 
     // Then add to graph
-    await this.tournamentGraphService.tournamentRankMovieForUser(userId, winnerId, loserId, winnerId);
+    await this.tournamentGraphService.tournamentRankMovieForUser(userId, winnerId, loserId, winnerId, liked);
 
     return 'Successfully ranked movie';
   }
 
-  async getMatchup(userId: number) {
+  async getMatchup(userId: number): Promise<Movie[]> {
     const usersTournamentRanking = await this.prismaService.tournamentRating.findMany({
       where: { userId },
     });
 
     // Ranomize if getting liked or disliked movies
     // TODO: Make this depend on the user's preferences or where the movie counts in tournament rankins are lower
+    // TODO: Rank unranked movie against established movie from middle of ranking to find place faster
     const liked = Math.random() < 0.5;
     const userSwipedMovies = await this.prismaService.userMovieRating.findMany({
       where: { userId, likedStatus: liked ? 'liked' : 'disliked' },
@@ -130,21 +131,57 @@ export class TournamentService {
     return existingRating ?? undefined;
   }
 
-  private async addTournamentRankToDatabase(userId: number, winnerId: number, loserId: number): Promise<void> {
+  private async addTournamentRankToDatabase(
+    userId: number,
+    winnerId: number,
+    loserId: number,
+    liked: boolean,
+  ): Promise<void> {
     const existingPreference = await this.findExistingPreference(userId, winnerId, loserId);
 
     // If existingPreference undefined -> new preference, if not equal to winnerId -> update, else nothing
     if (!existingPreference) {
       await this.prismaService.tournamentRating.create({
-        data: { userId, movie1Id: winnerId, movie2Id: loserId, winnerId },
+        data: { userId, movie1Id: winnerId, movie2Id: loserId, winnerId, likedStatus: liked ? 'liked' : 'disliked' },
       });
-      logger.info(`Added new preference for user ${userId}, for winner ${winnerId} and loser ${loserId}`);
+      logger.info(
+        `Added new ${
+          liked ? 'liked' : 'dislike'
+        } preference for user ${userId}, for winner ${winnerId} and loser ${loserId}`,
+      );
+    } else if (
+      existingPreference.likedStatus !== (liked ? 'liked' : 'disliked') &&
+      existingPreference.winnerId !== winnerId
+    ) {
+      await this.prismaService.tournamentRating.update({
+        where: { id: existingPreference.id },
+        data: { likedStatus: liked ? 'liked' : 'disliked', winnerId },
+      });
+      logger.info(
+        `Updated ${
+          liked ? 'liked' : 'dislike'
+        } preference for user ${userId}, for winner ${winnerId} and loser ${loserId}`,
+      );
+    } else if (existingPreference.likedStatus !== (liked ? 'liked' : 'disliked')) {
+      await this.prismaService.tournamentRating.update({
+        where: { id: existingPreference.id },
+        data: { likedStatus: liked ? 'liked' : 'disliked' },
+      });
+      logger.info(
+        `Updated ${
+          liked ? 'liked' : 'dislike'
+        } preference for user ${userId}, for winner ${winnerId} and loser ${loserId}`,
+      );
     } else if (existingPreference.winnerId !== winnerId) {
       await this.prismaService.tournamentRating.update({
         where: { id: existingPreference.id },
         data: { winnerId },
       });
-      logger.info(`Updated preference for user ${userId}, for winner ${winnerId} and loser ${loserId}`);
+      logger.info(
+        `Updated ${
+          liked ? 'liked' : 'dislike'
+        } preference for user ${userId}, for winner ${winnerId} and loser ${loserId}`,
+      );
     }
   }
 }

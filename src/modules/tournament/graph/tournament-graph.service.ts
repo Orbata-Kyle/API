@@ -11,8 +11,10 @@ export class TournamentGraphService {
   }
 
   // Returns users tournament rankins as a map of movieId -> ranking
-  async getUsersTournamentRankings(userId: number): Promise<Map<number, number>> {
-    const userGraph = await this.cache.getGraphForUser(userId);
+  async getUsersTournamentRankings(userId: number, liked: boolean): Promise<Map<number, number>> {
+    const userGraph = liked
+      ? await this.cache.getLikeGraphForUser(userId)
+      : await this.cache.getDislikedGraphForUser(userId);
     const rankings = userGraph.computeRankings();
 
     return rankings;
@@ -24,9 +26,12 @@ export class TournamentGraphService {
     movie1Id: number,
     movie2Id: number,
     winnerId: number,
+    liked: boolean,
   ): Promise<void> {
     // Add to graph cache
-    const userGraph = await this.cache.getGraphForUser(userId);
+    const userGraph = liked
+      ? await this.cache.getLikeGraphForUser(userId)
+      : await this.cache.getDislikedGraphForUser(userId);
     userGraph.addPreference(winnerId, movie1Id === winnerId ? movie2Id : movie1Id);
   }
 }
