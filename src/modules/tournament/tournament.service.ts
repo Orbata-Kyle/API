@@ -3,6 +3,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { TournamentGraphService } from './graph/tournament-graph.service';
 import logger from '../../utils/logging/winston-config';
 import { Movie, TournamentRating, UserMovieRating } from '@prisma/client';
+import { MovieWithRank } from '../../types';
 
 @Injectable()
 export class TournamentService {
@@ -11,20 +12,40 @@ export class TournamentService {
     private readonly tournamentGraphService: TournamentGraphService,
   ) {}
 
-  async getUsersTournamentRankings(userId: number, liked: boolean): Promise<Movie[]> {
+  async getUsersTournamentRankings(userId: number, liked: boolean): Promise<MovieWithRank[]> {
     const rankings = await this.tournamentGraphService.getUsersTournamentRankings(userId, liked);
 
     // Get movies from prisma
-    const movies = await this.prismaService.movie.findMany({
+    const moviesWithoutRank = await this.prismaService.movie.findMany({
       where: { id: { in: Array.from(rankings.keys()) } },
     });
 
-    // Order movies by rankings
-    movies.sort((a, b) => {
-      return rankings.get(b.id)! - rankings.get(a.id)!;
-    });
+    // Order movies by rankings and add them to the objects
+    let movies: MovieWithRank[] = moviesWithoutRank
+      .map((movie, _) => {
+        return {
+          ...movie,
+          rank: rankings.get(movie.id)!.toString(),
+        };
+      })
+      .sort((a: MovieWithRank, b: MovieWithRank) => {
+        return rankings.get(b.id)! - rankings.get(a.id)!;
+      });
 
-    logger.info(`Returning ${movies.length} movie rankings for user ${userId}`);
+    // Get all movies from users likes or dislikes with id not in rankings as well as the movies and concat to movies
+    const unrankedMovies = await this.prismaService.userMovieRating.findMany({
+      where: { userId, likedStatus: liked ? 'liked' : 'disliked', movieId: { notIn: Array.from(rankings.keys()) } },
+      include: { movie: true },
+    });
+    movies = movies.concat(
+      unrankedMovies.map((m) => {
+        return { ...m.movie, rank: 'Unranked' };
+      }),
+    );
+
+    logger.info(
+      `Returning ${movies.length} movie rankings for user ${userId}, with ${rankings.size} ranked movies and ${unrankedMovies.length} unranked movies`,
+    );
     return movies;
   }
 
