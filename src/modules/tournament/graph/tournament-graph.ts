@@ -140,7 +140,7 @@ export class TournamentGraph {
 
     for (const [winnerId, losers] of this.adjacencyList.entries()) {
       for (const loserId of losers) {
-        if (this.dfs(loserId, winnerId, visited)) {
+        if (this.dfs(loserId, winnerId, visited, this.adjacencyList)) {
           return true;
         }
       }
@@ -238,11 +238,11 @@ export class TournamentGraph {
     return ranks;
   }
 
-  private dfs(current: number, target: number, visited: Set<number>): boolean {
+  private dfs(current: number, target: number, visited: Set<number>, adjList: Map<number, Set<number>>): boolean {
     if (current === target) return true;
     visited.add(current);
-    for (const neighbor of this.adjacencyList.get(current) || []) {
-      if (!visited.has(neighbor) && this.dfs(neighbor, target, visited)) {
+    for (const neighbor of adjList.get(current) || []) {
+      if (!visited.has(neighbor) && this.dfs(neighbor, target, visited, adjList)) {
         return true;
       }
     }
@@ -250,19 +250,26 @@ export class TournamentGraph {
   }
 
   private checkPotentialMatchup(winnerId: number, loserId: number): boolean {
-    // Temporarily add the potential matchup to the graph
-    const originalEdges = new Set(this.adjacencyList.get(winnerId));
-    if (!this.adjacencyList.has(winnerId)) {
-      this.adjacencyList.set(winnerId, new Set());
+    // Create a copy of the adjacency list
+    const adjacencyListCopy = new Map<number, Set<number>>();
+    this.adjacencyList.forEach((edges, id) => {
+      adjacencyListCopy.set(id, new Set(edges));
+    });
+
+    // Temporarily add the potential matchup to the copy of the graph
+    if (!adjacencyListCopy.has(winnerId)) {
+      adjacencyListCopy.set(winnerId, new Set());
     }
-    this.adjacencyList.get(winnerId)!.add(loserId);
+    adjacencyListCopy.get(winnerId)!.add(loserId);
 
-    // Perform a depth-first search to detect potential cycles
+    // Remove the reverse edge if it exists, as it would obviously cause a cycle
+    if (adjacencyListCopy.has(loserId) && adjacencyListCopy.get(loserId)!.has(winnerId)) {
+      adjacencyListCopy.get(loserId)!.delete(winnerId);
+    }
+
+    // Perform a depth-first search on the copy to detect potential cycles
     const visited = new Set<number>();
-    const hasCycle = this.dfs(loserId, winnerId, visited); // Check if there's a path from loserId back to winnerId
-
-    // Revert the adjacency list to its original state
-    this.adjacencyList.set(winnerId, originalEdges);
+    const hasCycle = this.dfs(loserId, winnerId, visited, adjacencyListCopy);
 
     return hasCycle;
   }
