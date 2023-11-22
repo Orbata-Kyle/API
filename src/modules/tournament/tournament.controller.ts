@@ -53,7 +53,7 @@ export class TournamentController {
   }
 
   @UseGuards(JwtGuard)
-  @Get('circle/:likedStatus')
+  @Get('cycle/:likedStatus')
   async willCauseCircle(@GetUser('id') userId: number, @Param('likedStatus') likedStatus: string) {
     if (!['liked', 'disliked'].includes(likedStatus)) {
       throw new BadRequestException('Invalid likedStatus');

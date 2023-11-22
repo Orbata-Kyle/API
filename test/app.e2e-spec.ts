@@ -571,12 +571,12 @@ describe('App e2e', () => {
 
       it('Should get matches and rank them, never getting duplicates, empty response when all ranked', async () => {
         await rateMovie('108', 'disliked');
+        await rateMovie('109', 'disliked');
         const movieIdIterations: number[][] = [];
 
-        // 2 Matchups missing until complete and no more matchups without circles
-        for (let i = 0; i < 4; i++) {
+        // 10 Matchups missing until complete and no more matchups without circles
+        for (let i = 0; i < 10; i++) {
           movieIdIterations.push((await getMatchupResponse()).movies.map((m) => m.id));
-          console.log(movieIdIterations[movieIdIterations.length - 1]);
           await playOutTournamentMatchup(
             movieIdIterations[movieIdIterations.length - 1][0],
             movieIdIterations[movieIdIterations.length - 1][1],
@@ -607,6 +607,32 @@ describe('App e2e', () => {
             movies: [],
             likedStatus: 'undefined',
           });
+      });
+    });
+
+    describe('cycle', () => {
+      it('Should say there is no circle', async () => {
+        await pactum
+          .spec()
+          .get('/tournament/cycle/disliked')
+          .withHeaders({
+            Authorization: 'Bearer $S{userAt}',
+          })
+          .expectStatus(200)
+          .expectBodyContains('false');
+      });
+
+      it('Should say there is a circle, after forcefully creating one', async () => {
+        await playOutTournamentMatchup(102, 100);
+
+        await pactum
+          .spec()
+          .get('/tournament/cycle/disliked')
+          .withHeaders({
+            Authorization: 'Bearer $S{userAt}',
+          })
+          .expectStatus(200)
+          .expectBodyContains('true');
       });
     });
   });
