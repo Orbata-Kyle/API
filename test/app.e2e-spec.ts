@@ -633,7 +633,6 @@ describe('App e2e', () => {
             winnerId: 102,
             loserId: 100,
           })
-          .inspect()
           .expectStatus(400);
       });
     });

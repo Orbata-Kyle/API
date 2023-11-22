@@ -187,6 +187,8 @@ export class TournamentGraph {
     return this.ranks;
   }
 
+  // --------------------- Helper methods for computing rankings ---------------------
+
   private adjustScores(winnerId: number, loserId: number, scores: Map<number, number>): boolean {
     const upsetFactor = 1.5;
     const winnerScore = scores.get(winnerId);
@@ -237,6 +239,8 @@ export class TournamentGraph {
     sortedScores.forEach(([movieId, _], index) => ranks.set(movieId, index + 1));
     return ranks;
   }
+
+  // --------------------- Helper methods for checking cycles ---------------------
 
   private dfs(current: number, target: number, visited: Set<number>, adjList: Map<number, Set<number>>): boolean {
     if (current === target) return true;
