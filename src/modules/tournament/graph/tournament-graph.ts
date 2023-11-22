@@ -49,7 +49,6 @@ export class TournamentGraph {
     }
   }
 
-  // The one and only place to change graph cache
   async addPreference(winnerId: number, loserId: number): Promise<void> {
     if (!this.adjacencyList.has(winnerId)) {
       this.adjacencyList.set(winnerId, new Set());
