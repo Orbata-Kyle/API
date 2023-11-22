@@ -46,6 +46,12 @@ export class TournamentGraphService {
     return userGraph.hasCycle();
   }
 
+  // Wrapper for willCauseCycle method
+  async willCauseCycle(userId: number, movie1Id: number, movie2Id: number, liked: boolean): Promise<boolean> {
+    const userGraph = liked ? await this.cache.getLikeGraphForUser(userId) : await this.cache.getDislikedGraphForUser(userId);
+    return userGraph.willCauseCycle(movie1Id, movie2Id);
+  }
+
   // Wrapper for getAvgRankMovieId method
   async getAvgRankMovieId(userId: number, liked: boolean): Promise<number> {
     const userGraph = liked ? await this.cache.getLikeGraphForUser(userId) : await this.cache.getDislikedGraphForUser(userId);

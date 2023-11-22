@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { TournamentGraphService } from './graph/tournament-graph.service';
 import logger from '../../utils/logging/winston-config';
@@ -52,6 +52,12 @@ export class TournamentService {
   }
 
   async tournamentRankMovieForUser(userId: number, winnerId: number, loserId: number, liked: boolean): Promise<string> {
+    // Check if it will create a cycle
+    if (await this.tournamentGraphService.willCauseCycle(userId, winnerId, loserId, liked)) {
+      logger.warn(`User ${userId} tried to create a cycle with ${winnerId} and ${loserId}`);
+      throw new BadRequestException('This ranking would create a cylce');
+    }
+
     // Add to database first to make sure it's working
     await this.addTournamentRankToDatabase(userId, winnerId, loserId, liked);
 

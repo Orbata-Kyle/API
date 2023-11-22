@@ -622,17 +622,19 @@ describe('App e2e', () => {
           .expectBodyContains('false');
       });
 
-      it('Should say there is a circle, after forcefully creating one', async () => {
-        await playOutTournamentMatchup(102, 100);
-
+      it('Should not allow the matchup as it would create a cycle', async () => {
         await pactum
           .spec()
-          .get('/tournament/cycle/disliked')
+          .post('/tournament/rank')
           .withHeaders({
             Authorization: 'Bearer $S{userAt}',
           })
-          .expectStatus(200)
-          .expectBodyContains('true');
+          .withBody({
+            winnerId: 102,
+            loserId: 100,
+          })
+          .inspect()
+          .expectStatus(400);
       });
     });
   });
