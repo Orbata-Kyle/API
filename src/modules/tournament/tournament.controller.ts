@@ -51,4 +51,13 @@ export class TournamentController {
   async getMatchup(@GetUser('id') userId: number) {
     return this.tournamentService.getMatchup(userId);
   }
+
+  @UseGuards(JwtGuard)
+  @Get('circle/:likedStatus')
+  async willCauseCircle(@GetUser('id') userId: number, @Param('likedStatus') likedStatus: string) {
+    if (!['liked', 'disliked'].includes(likedStatus)) {
+      throw new BadRequestException('Invalid likedStatus');
+    }
+    return this.tournamentService.findCycle(userId, likedStatus === 'liked');
+  }
 }

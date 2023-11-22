@@ -457,7 +457,6 @@ describe('App e2e', () => {
               id: 106,
             },
           ])
-          .inspect()
           .toss()
           .then((res) => {
             responseBody = res.body;
@@ -571,11 +570,13 @@ describe('App e2e', () => {
       });
 
       it('Should get matches and rank them, never getting duplicates, empty response when all ranked', async () => {
+        await rateMovie('108', 'disliked');
         const movieIdIterations: number[][] = [];
 
-        // 11 Matchups missing until complete
-        for (let i = 0; i < 12; i++) {
+        // 2 Matchups missing until complete and no more matchups without circles
+        for (let i = 0; i < 4; i++) {
           movieIdIterations.push((await getMatchupResponse()).movies.map((m) => m.id));
+          console.log(movieIdIterations[movieIdIterations.length - 1]);
           await playOutTournamentMatchup(
             movieIdIterations[movieIdIterations.length - 1][0],
             movieIdIterations[movieIdIterations.length - 1][1],

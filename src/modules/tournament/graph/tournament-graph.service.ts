@@ -39,4 +39,22 @@ export class TournamentGraphService {
     const userGraph = liked ? await this.cache.getLikeGraphForUser(userId) : await this.cache.getDislikedGraphForUser(userId);
     return userGraph.findAndRemovePreferenceCombination(movie1Id, movie2Id);
   }
+
+  // wrapper for has circle method
+  async hasCycle(userId: number, liked: boolean): Promise<boolean> {
+    const userGraph = liked ? await this.cache.getLikeGraphForUser(userId) : await this.cache.getDislikedGraphForUser(userId);
+    return userGraph.hasCycle();
+  }
+
+  // Wrapper for getAvgRankMovieId method
+  async getAvgRankMovieId(userId: number, liked: boolean): Promise<number> {
+    const userGraph = liked ? await this.cache.getLikeGraphForUser(userId) : await this.cache.getDislikedGraphForUser(userId);
+    return userGraph.getAvgRankMovieId();
+  }
+
+  // Wrapper for getMatchup method
+  async getMatchup(userId: number, liked: boolean): Promise<[number, number]> {
+    const userGraph = liked ? await this.cache.getLikeGraphForUser(userId) : await this.cache.getDislikedGraphForUser(userId);
+    return userGraph.getMatchup();
+  }
 }

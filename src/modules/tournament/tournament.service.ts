@@ -9,6 +9,11 @@ import { MatchupResponse, MovieWithRank } from '../../types';
 export class TournamentService {
   constructor(private readonly prismaService: PrismaService, private readonly tournamentGraphService: TournamentGraphService) {}
 
+  // Wrapper for tournamentGraphService.findCircle
+  async findCycle(userId: number, liked: boolean): Promise<boolean> {
+    return this.tournamentGraphService.hasCycle(userId, liked);
+  }
+
   async getUsersTournamentRankings(userId: number, liked: boolean): Promise<MovieWithRank[]> {
     const rankings = await this.tournamentGraphService.getUsersTournamentRankings(userId, liked);
 
@@ -57,71 +62,17 @@ export class TournamentService {
   }
 
   async getMatchup(userId: number): Promise<MatchupResponse> {
-    const usersTournamentRanking = await this.prismaService.tournamentRating.findMany({
-      where: { userId },
-    });
-
-    // Ranomize if getting liked or disliked movies
-    // TODO: Make this depend on the user's preferences or where the movie counts in tournament rankins are lower
-    // TODO: Rank unranked movie against established movie from middle of ranking to find place faster
     let liked = Math.random() < 0.5;
-    let userSwipedMovies = await this.prismaService.userMovieRating.findMany({
-      where: { userId, likedStatus: liked ? 'liked' : 'disliked' },
-    });
-    if (userSwipedMovies.length < 2) {
-      userSwipedMovies = await this.prismaService.userMovieRating.findMany({
-        where: { userId, likedStatus: liked ? 'disliked' : 'liked' },
-      });
-      if (userSwipedMovies.length < 2) {
-        return { movies: [], likedStatus: 'undefined' };
-      }
+    let movies = await this.findMatchupMovies(liked, userId);
+    if (movies.length === 0) {
       liked = !liked;
+      movies = await this.findMatchupMovies(liked, userId);
     }
-    // Shuffle array to make matchups random
-    userSwipedMovies.sort(() => Math.random() - 0.5);
-    logger.info(
-      `Getting matchup of ${liked ? 'liked' : 'disliked'} movies for user ${userId} with ${userSwipedMovies.length} swiped movies`,
-    );
-
-    // Count how many times each movie has been ranked
-    const movieCounts = new Map<number, number>();
-    for (const ranking of usersTournamentRanking) {
-      if (!movieCounts.has(ranking.movie1Id)) {
-        movieCounts.set(ranking.movie1Id, 0);
-      }
-      if (!movieCounts.has(ranking.movie2Id)) {
-        movieCounts.set(ranking.movie2Id, 0);
-      }
-
-      movieCounts.set(ranking.movie1Id, movieCounts.get(ranking.movie1Id)! + 1);
-      movieCounts.set(ranking.movie2Id, movieCounts.get(ranking.movie2Id)! + 1);
+    if (movies.length === 0) {
+      logger.info(`No Matchups remaining for user ${userId}`);
+      return { likedStatus: 'undefined', movies: [] };
     }
-
-    let matchupExists = true;
-    let matchupMovies: Movie[];
-    while (matchupExists) {
-      matchupMovies = await this.findMatchupMovies(movieCounts, userSwipedMovies);
-
-      const matchup = await this.findExistingPreference(userId, matchupMovies[0].id, matchupMovies[1].id);
-      matchupExists = matchup !== undefined;
-
-      // Remove the second best movie from the array so they don't get matched up again
-      if (matchupExists) {
-        logger.info(`Matchup ${matchupMovies[0].id} and ${matchupMovies[1].id} already exists for user ${userId}, finding new matchup`);
-        userSwipedMovies.splice(
-          userSwipedMovies.findIndex((m) => m.movieId === matchupMovies[1].id),
-          1,
-        );
-        if (userSwipedMovies.length < 2) {
-          // No matchups left
-          return { movies: [], likedStatus: 'undefined' };
-        }
-      }
-    }
-    return {
-      movies: matchupMovies,
-      likedStatus: liked ? 'liked' : 'disliked',
-    };
+    return { likedStatus: liked ? 'liked' : 'disliked', movies };
   }
 
   async removeMovieRankingsAsLikedStatusChanged(userId: number, movieId: number, prevLikedStatus: string, newLikedStatus: string) {
@@ -155,47 +106,47 @@ export class TournamentService {
     );
   }
 
-  private async findMatchupMovies(movieCounts: Map<number, number>, userSwipedMovies: UserMovieRating[]): Promise<Movie[]> {
-    // Find the two movies with the lowest count or no count
-    const lowestCountMovie: { movieId: number; count: number } = {
-      movieId: -1,
-      count: Number.MAX_SAFE_INTEGER,
-    };
-    const secondLowestCountMovie: { movieId: number; count: number } = {
-      movieId: -1,
-      count: Number.MAX_SAFE_INTEGER,
-    };
-    for (const userSwipedMovie of userSwipedMovies) {
-      if (movieCounts.has(userSwipedMovie.movieId) && movieCounts.get(userSwipedMovie.movieId)! < lowestCountMovie.count) {
-        secondLowestCountMovie.movieId = lowestCountMovie.movieId;
-        secondLowestCountMovie.count = lowestCountMovie.count;
-        lowestCountMovie.movieId = userSwipedMovie.movieId;
-        lowestCountMovie.count = movieCounts.get(userSwipedMovie.movieId)!;
-      } else if (movieCounts.has(userSwipedMovie.movieId) && movieCounts.get(userSwipedMovie.movieId)! < secondLowestCountMovie.count) {
-        secondLowestCountMovie.movieId = userSwipedMovie.movieId;
-        secondLowestCountMovie.count = movieCounts.get(userSwipedMovie.movieId)!;
-      } else if (!movieCounts.has(userSwipedMovie.movieId)) {
-        secondLowestCountMovie.movieId = lowestCountMovie.movieId;
-        secondLowestCountMovie.count = lowestCountMovie.count;
-        lowestCountMovie.movieId = userSwipedMovie.movieId;
-        lowestCountMovie.count = movieCounts.get(userSwipedMovie.movieId)!;
+  private async findMatchupMovies(liked: boolean, userId: number): Promise<Movie[]> {
+    const usersTournamentRanking = await this.prismaService.tournamentRating.findMany({
+      where: { userId, likedStatus: liked ? 'liked' : 'disliked' },
+    });
+    const userSwipedMovies = await this.prismaService.userMovieRating.findMany({
+      where: { userId, likedStatus: liked ? 'liked' : 'disliked' },
+    });
+
+    // Filter movies that have been swiped on but not ranked
+    const freshMoviesToRank = userSwipedMovies.filter((m) => {
+      return !usersTournamentRanking.some((r) => r.movie1Id === m.movieId || r.movie2Id === m.movieId);
+    });
+
+    // If fresh movies available, rank agains random/average one from graph to establish a baseline
+    if (freshMoviesToRank.length > 0) {
+      const movie1 = await this.prismaService.movie.findFirst({
+        where: { id: freshMoviesToRank[0].movieId },
+      });
+      const movie2Id = await this.tournamentGraphService.getAvgRankMovieId(userId, liked);
+      if (movie2Id && movie2Id !== 0) {
+        const movie2 = await this.prismaService.movie.findFirst({
+          where: { id: await this.tournamentGraphService.getAvgRankMovieId(userId, liked) },
+        });
+        logger.info(`Returning fresh matchup for user ${userId} with ${liked ? 'liked' : 'disliked'} movies ${movie1.id} and ${movie2.id}`);
+        return [movie1, movie2];
       }
     }
 
-    const lowestMovies = await this.prismaService.movie.findMany({
-      where: { id: { in: [lowestCountMovie.movieId, secondLowestCountMovie.movieId] } },
+    // If no fresh movies available, get matchup from graph, which is least ranked movies that wouldn't cause a cycle in any combination
+    const suggestedGraphMatchup = await this.tournamentGraphService.getMatchup(userId, liked);
+    if (!suggestedGraphMatchup) {
+      return [];
+    }
+    const movie1 = await this.prismaService.movie.findFirst({
+      where: { id: suggestedGraphMatchup[0] },
     });
-    // Sort so that lowest count movie first
-    lowestMovies.sort((a, b) => {
-      if (a.id === lowestCountMovie.movieId) {
-        return -1;
-      } else if (b.id === lowestCountMovie.movieId) {
-        return 1;
-      } else {
-        return 0;
-      }
+    const movie2 = await this.prismaService.movie.findFirst({
+      where: { id: suggestedGraphMatchup[1] },
     });
-    return lowestMovies;
+    logger.info(`Returning graph for user ${userId} with ${liked ? 'liked' : 'disliked'} movies ${movie1.id} and ${movie2.id}`);
+    return [movie1, movie2];
   }
 
   // Finds an existing rating for a user and returns the tournamentRating

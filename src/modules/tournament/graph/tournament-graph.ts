@@ -74,6 +74,81 @@ export class TournamentGraph {
     }
   }
 
+  getAvgRankMovieId(): number {
+    // Get MovieId of movie with average adjecency list length
+    // Tradeoff as getting one with avg rank will require computing ranks for all movies and thus longer time
+    let totalLenth = 0;
+    this.adjacencyList.forEach((edges) => (totalLenth += edges.size));
+    const avgLength = totalLenth / this.adjacencyList.size;
+    let closestMovieId = 0;
+    let closestMovieLength = Number.MAX_SAFE_INTEGER;
+    this.adjacencyList.forEach((edges, movieId) => {
+      const length = Math.abs(edges.size - avgLength);
+      if (length < closestMovieLength) {
+        closestMovieId = movieId;
+        closestMovieLength = length;
+      }
+    });
+    return closestMovieId;
+  }
+
+  getMatchup(): [number, number] | null {
+    // Calculate the frequency of matchups for each movie
+    const frequencyMap = new Map<number, number>();
+    this.adjacencyList.forEach((opponents, movieId) => {
+      frequencyMap.set(movieId, (frequencyMap.get(movieId) || 0) + opponents.size);
+      opponents.forEach((opponentId) => {
+        frequencyMap.set(opponentId, (frequencyMap.get(opponentId) || 0) + 1);
+      });
+    });
+
+    // Convert frequencyMap to array and sort by frequency
+    const sortedMovies = Array.from(frequencyMap.entries()).sort((a, b) => a[1] - b[1]);
+
+    // Find a pair of movies with the least occurrences that haven't been matched and won't cause a cycle
+    for (let i = 0; i < sortedMovies.length; i++) {
+      for (let j = i + 1; j < sortedMovies.length; j++) {
+        const [movie1Id, __] = sortedMovies[i];
+        const [movie2Id, _] = sortedMovies[j];
+        if (!this.hasPreferenceCombination(movie1Id, movie2Id) && !this.willCauseCycle(movie1Id, movie2Id)) {
+          return [movie1Id, movie2Id];
+        }
+      }
+    }
+
+    return null; // No valid matchup found
+  }
+
+  willCauseCycle(movie1Id: number, movie2Id: number): boolean {
+    // Check if adding movie1 > movie2 causes a cycle
+    if (this.checkPotentialMatchup(movie1Id, movie2Id)) {
+      return true;
+    }
+
+    // Check if adding movie2 > movie1 causes a cycle
+    if (this.checkPotentialMatchup(movie2Id, movie1Id)) {
+      return true;
+    }
+
+    // No cycle detected in either scenario
+    return false;
+  }
+
+  hasCycle(): boolean {
+    // Same as checkPotentialMatchup but for all edges
+    const visited = new Set<number>();
+
+    for (const [winnerId, losers] of this.adjacencyList.entries()) {
+      for (const loserId of losers) {
+        if (this.dfs(loserId, winnerId, visited)) {
+          return true;
+        }
+      }
+    }
+
+    return false;
+  }
+
   computeRankings(): Map<number, number> {
     if (!this.newPreference) {
       return this.ranks;
@@ -161,5 +236,34 @@ export class TournamentGraph {
     const ranks = new Map<number, number>();
     sortedScores.forEach(([movieId, _], index) => ranks.set(movieId, index + 1));
     return ranks;
+  }
+
+  private dfs(current: number, target: number, visited: Set<number>): boolean {
+    if (current === target) return true;
+    visited.add(current);
+    for (const neighbor of this.adjacencyList.get(current) || []) {
+      if (!visited.has(neighbor) && this.dfs(neighbor, target, visited)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  private checkPotentialMatchup(winnerId: number, loserId: number): boolean {
+    // Temporarily add the potential matchup to the graph
+    const originalEdges = new Set(this.adjacencyList.get(winnerId));
+    if (!this.adjacencyList.has(winnerId)) {
+      this.adjacencyList.set(winnerId, new Set());
+    }
+    this.adjacencyList.get(winnerId)!.add(loserId);
+
+    // Perform a depth-first search to detect potential cycles
+    const visited = new Set<number>();
+    const hasCycle = this.dfs(loserId, winnerId, visited); // Check if there's a path from loserId back to winnerId
+
+    // Revert the adjacency list to its original state
+    this.adjacencyList.set(winnerId, originalEdges);
+
+    return hasCycle;
   }
 }
