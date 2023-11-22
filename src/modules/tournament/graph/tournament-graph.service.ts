@@ -25,6 +25,7 @@ export class TournamentGraphService {
     const userDisikedGraph = await this.cache.getDislikedGraphForUser(userId);
 
     // Remove from other graph if it exists there already to keep data consistent with database
+    // This is what is done for the database in the addTournamentRankToDatabase method in tournament.service.ts
     if (liked) {
       userDisikedGraph.findAndRemovePreferenceCombination(movie1Id, movie2Id);
     } else {

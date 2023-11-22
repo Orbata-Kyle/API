@@ -11,6 +11,7 @@ export class TournamentGraph {
 
   scanAndDeleteUnusedMovie(movieId: number) {
     // Search if movieIds adjecency list itself is empty and if it is an edge in any other movieIds adjecency lists, if both false then delete it
+    // As this can only happen if this is a movie that was a looser from a matchup that was then moved to another graph (liked -> disliked or vice versa)
     if (this.adjacencyList.has(movieId) && this.adjacencyList.get(movieId)!.size === 0) {
       let isUsed = false;
       this.adjacencyList.forEach((edges, _) => {

@@ -410,6 +410,7 @@ describe('App e2e', () => {
         await rateMovie('103', 'disliked');
         await rateMovie('104', 'disliked');
         await rateMovie('105', 'disliked');
+        // Swipe this one but don't rank it, leaving it unranked
         await rateMovie('106', 'disliked');
 
         await playOutTournamentMatchup(100, 101);
