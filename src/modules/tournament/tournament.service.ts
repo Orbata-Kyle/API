@@ -26,7 +26,7 @@ export class TournamentService {
         };
       })
       .sort((a: MovieWithRank, b: MovieWithRank) => {
-        return rankings.get(b.id)! - rankings.get(a.id)!;
+        return rankings.get(a.id)! - rankings.get(b.id)!;
       });
 
     // Get all movies from users likes or dislikes with id not in rankings as well as the movies and concat to movies

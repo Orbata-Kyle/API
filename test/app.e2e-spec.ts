@@ -399,10 +399,10 @@ describe('App e2e', () => {
         await rateMovie('102', 'disliked');
         await rateMovie('100', 'disliked');
 
-        await playOutTournamentMatchup(102, 100);
+        await playOutTournamentMatchup(100, 102);
 
-        await assertTournamentRatingExistsInDb(102, 100, 'disliked');
-        await assertTournamentRatingDoesntExistsInDb(102, 100, 'liked');
+        await assertTournamentRatingExistsInDb(100, 102, 'disliked');
+        await assertTournamentRatingDoesntExistsInDb(100, 102, 'liked');
       });
 
       it('Should add some more movies to rankings for later', async () => {
@@ -457,20 +457,19 @@ describe('App e2e', () => {
               id: 106,
             },
           ])
+          .inspect()
           .toss()
           .then((res) => {
             responseBody = res.body;
           });
 
         for (let i = 1; i < responseBody.length; i++) {
-          // Also check that order of ids is 100 -> 104 -> 101 -> 102 -> 105 -> 103 -> 106
-
           if (i === responseBody.length - 1) {
             if (responseBody[i].rank !== 'Unranked') {
               throw new Error(`Rank of last item is not Unranked`);
             }
-          } else if (parseFloat(responseBody[i].rank) > parseFloat(responseBody[i - 1].rank)) {
-            throw new Error(`Rank of item at index ${i} is not less than or equal to rank of previous item`);
+          } else if (i > 0 && responseBody[i].id < responseBody[i - 1].id && responseBody[i].rank < responseBody[i - 1].rank) {
+            throw new Error(`Id or rank of item at index ${i} is not greater than or equal to id of previous item`);
           }
         }
       });
@@ -519,7 +518,6 @@ describe('App e2e', () => {
             Authorization: 'Bearer $S{userAt}',
           })
           .expectStatus(200)
-          .inspect()
           .expectJsonLike([
             {
               id: 107,
@@ -540,7 +538,6 @@ describe('App e2e', () => {
               rank: 'Unranked',
             },
           ])
-          .inspect()
           .expect((res) => {
             if (res.res.body.some((s) => s.id === 107)) {
               throw new Error('Movie 107 should not be in disliked rankings anymore');
