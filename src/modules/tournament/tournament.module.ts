@@ -10,5 +10,6 @@ import { TheMovieDb } from '../../services/the-movie-db.service';
   imports: [],
   controllers: [TournamentController],
   providers: [TournamentService, PrismaService, TournamentGraphService, MovieService, TheMovieDb],
+  exports: [TournamentGraphService, TournamentService],
 })
 export class TournamentModule {}

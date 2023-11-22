@@ -124,6 +124,37 @@ export class TournamentService {
     };
   }
 
+  async removeMovieRankingsAsLikedStatusChanged(userId: number, movieId: number, prevLikedStatus: string, newLikedStatus: string) {
+    if (prevLikedStatus !== 'liked' && prevLikedStatus !== 'disliked') return;
+    if (newLikedStatus === prevLikedStatus) return;
+
+    // Get all matchups with this movie
+    const matchups = await this.prismaService.tournamentRating.findMany({
+      where: { userId, likedStatus: prevLikedStatus, OR: [{ movie1Id: movieId }, { movie2Id: movieId }] },
+    });
+
+    if (matchups.length === 0) return;
+
+    // Remove them from the graph
+    for (const matchup of matchups) {
+      await this.tournamentGraphService.findAndRemovePreferenceCombination(
+        userId,
+        matchup.movie1Id,
+        matchup.movie2Id,
+        prevLikedStatus === 'liked',
+      );
+    }
+
+    // Remove them from the database
+    await this.prismaService.tournamentRating.deleteMany({
+      where: { userId, likedStatus: prevLikedStatus, OR: [{ movie1Id: movieId }, { movie2Id: movieId }] },
+    });
+
+    logger.info(
+      `Removed ${matchups.length} matchups for user ${userId} with movie ${movieId} as likedStatus changed from ${prevLikedStatus} to ${newLikedStatus}`,
+    );
+  }
+
   private async findMatchupMovies(movieCounts: Map<number, number>, userSwipedMovies: UserMovieRating[]): Promise<Movie[]> {
     // Find the two movies with the lowest count or no count
     const lowestCountMovie: { movieId: number; count: number } = {
@@ -186,6 +217,7 @@ export class TournamentService {
     const existingPreference = await this.findExistingPreference(userId, winnerId, loserId);
 
     // If existingPreference undefined -> new preference, if not equal to winnerId -> update, else nothing
+    // This is what is done for the graph in the addPreference method in tournament-graph.ts
     if (!existingPreference) {
       await this.prismaService.tournamentRating.create({
         data: { userId, movie1Id: winnerId, movie2Id: loserId, winnerId, likedStatus: liked ? 'liked' : 'disliked' },

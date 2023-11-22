@@ -1,12 +1,17 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import type { Prisma, UserMovieRating } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { TheMovieDb } from '../../services/the-movie-db.service';
 import logger from '../../utils/logging/winston-config';
+import { TournamentService } from '../tournament/tournament.service';
 
 @Injectable()
 export class MovieService {
-  constructor(private readonly prisma: PrismaService, private readonly theMovieDb: TheMovieDb) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly theMovieDb: TheMovieDb,
+    @Inject(TournamentService) private readonly tournamentService: TournamentService,
+  ) {}
 
   async ensureMovieInDb(id: number): Promise<void> {
     const movieFromDb = await this.prisma.movie.findUnique({
@@ -86,6 +91,9 @@ export class MovieService {
         where: { id: existingRating.id },
         data: { likedStatus: action },
       });
+      if (existingRating.likedStatus !== 'unseen') {
+        await this.tournamentService.removeMovieRankingsAsLikedStatusChanged(userId, parseInt(id), existingRating.likedStatus, action);
+      }
       return updatedRating;
     }
 

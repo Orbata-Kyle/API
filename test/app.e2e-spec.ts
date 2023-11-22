@@ -413,16 +413,14 @@ describe('App e2e', () => {
         // Swipe this one but don't rank it, leaving it unranked
         await rateMovie('106', 'disliked');
 
-        await playOutTournamentMatchup(100, 101);
-        await playOutTournamentMatchup(102, 103);
-        await playOutTournamentMatchup(104, 105);
-        await playOutTournamentMatchup(100, 102);
-        await playOutTournamentMatchup(101, 103);
-        await playOutTournamentMatchup(104, 102);
-        await playOutTournamentMatchup(100, 104);
-        await playOutTournamentMatchup(101, 105);
-        await playOutTournamentMatchup(105, 103);
-        await playOutTournamentMatchup(102, 105);
+        await playOutTournamentMatchup(100, 101); // Winner: 100
+        await playOutTournamentMatchup(101, 102); // Winner: 101
+        await playOutTournamentMatchup(101, 105); // Winner: 101
+        await playOutTournamentMatchup(101, 104); // Winner: 101
+        await playOutTournamentMatchup(102, 103); // Winner: 102
+        await playOutTournamentMatchup(102, 104); // Winner: 102
+        await playOutTournamentMatchup(103, 104); // Winner: 103
+        await playOutTournamentMatchup(104, 105); // Winner: 104
       });
     });
 
@@ -465,6 +463,8 @@ describe('App e2e', () => {
           });
 
         for (let i = 1; i < responseBody.length; i++) {
+          // Also check that order of ids is 100 -> 104 -> 101 -> 102 -> 105 -> 103 -> 106
+
           if (i === responseBody.length - 1) {
             if (responseBody[i].rank !== 'Unranked') {
               throw new Error(`Rank of last item is not Unranked`);
@@ -497,6 +497,59 @@ describe('App e2e', () => {
         // The one got from swiping from popular movies and then liked but never ranked
         expect(responseBody.length).toBe(1);
       });
+
+      it('Should dislike 2 new movies, then rank them against each other, the change likedStatus of one, which should remove them from dislike rankings', async () => {
+        await rateMovie('107', 'disliked');
+        await rateMovie('108', 'disliked');
+
+        await playOutTournamentMatchup(107, 108);
+
+        await assertTournamentRatingExistsInDb(107, 108, 'disliked');
+        await assertTournamentRatingDoesntExistsInDb(107, 108, 'liked');
+
+        await rateMovie('107', 'liked');
+
+        await assertTournamentRatingDoesntExistsInDb(107, 108, 'disliked');
+        await assertTournamentRatingDoesntExistsInDb(107, 108, 'liked');
+
+        await pactum
+          .spec()
+          .get('/tournament/rankings/liked')
+          .withHeaders({
+            Authorization: 'Bearer $S{userAt}',
+          })
+          .expectStatus(200)
+          .inspect()
+          .expectJsonLike([
+            {
+              id: 107,
+              rank: 'Unranked',
+            },
+          ]);
+
+        await pactum
+          .spec()
+          .get('/tournament/rankings/disliked')
+          .withHeaders({
+            Authorization: 'Bearer $S{userAt}',
+          })
+          .expectStatus(200)
+          .expectJsonLike([
+            {
+              id: 108,
+              rank: 'Unranked',
+            },
+          ])
+          .inspect()
+          .expect((res) => {
+            if (res.res.body.some((s) => s.id === 107)) {
+              throw new Error('Movie 107 should not be in disliked rankings anymore');
+            }
+          });
+
+        // For next tests
+        await prisma.movie.deleteMany({ where: { id: { in: [107, 108] } } });
+      });
     });
 
     describe('matches', () => {
@@ -524,7 +577,7 @@ describe('App e2e', () => {
         const movieIdIterations: number[][] = [];
 
         // 11 Matchups missing until complete
-        for (let i = 0; i < 11; i++) {
+        for (let i = 0; i < 12; i++) {
           movieIdIterations.push((await getMatchupResponse()).movies.map((m) => m.id));
           await playOutTournamentMatchup(
             movieIdIterations[movieIdIterations.length - 1][0],

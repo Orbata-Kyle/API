@@ -25,7 +25,7 @@ export class TournamentGraph {
     }
   }
 
-  async hasPreferenceCombination(movie1Id: number, movie2Id: number): Promise<boolean> {
+  hasPreferenceCombination(movie1Id: number, movie2Id: number): boolean {
     // return if the graph contains the edge movie1Id -> movie2Id or movie2Id -> movie1Id
     return (
       (this.adjacencyList.has(movie1Id) && this.adjacencyList.get(movie1Id)!.has(movie2Id)) ||
@@ -33,7 +33,8 @@ export class TournamentGraph {
     );
   }
 
-  async findAndRemovePreferenceCombination(movie1Id: number, movie2Id: number): Promise<boolean> {
+  findAndRemovePreferenceCombination(movie1Id: number, movie2Id: number): boolean {
+    // this can be triggered if these are two movies that that were moved to another graph (liked -> disliked or vice versa) as their likedStatus changed
     if (this.adjacencyList.has(movie1Id) && this.adjacencyList.get(movie1Id)!.has(movie2Id)) {
       this.adjacencyList.get(movie1Id)!.delete(movie2Id);
       this.scanAndDeleteUnusedMovie(movie1Id);
@@ -49,7 +50,7 @@ export class TournamentGraph {
     }
   }
 
-  async addPreference(winnerId: number, loserId: number): Promise<void> {
+  addPreference(winnerId: number, loserId: number): void {
     if (!this.adjacencyList.has(winnerId)) {
       this.adjacencyList.set(winnerId, new Set());
     }

@@ -33,4 +33,10 @@ export class TournamentGraphService {
     }
     (liked ? userLikedGraph : userDisikedGraph).addPreference(winnerId, movie1Id === winnerId ? movie2Id : movie1Id);
   }
+
+  // Wrapper for finding and removing preferences from the graph
+  async findAndRemovePreferenceCombination(userId: number, movie1Id: number, movie2Id: number, liked: boolean): Promise<boolean> {
+    const userGraph = liked ? await this.cache.getLikeGraphForUser(userId) : await this.cache.getDislikedGraphForUser(userId);
+    return userGraph.findAndRemovePreferenceCombination(movie1Id, movie2Id);
+  }
 }
