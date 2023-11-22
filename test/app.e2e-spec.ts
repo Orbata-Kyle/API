@@ -8,6 +8,7 @@ import { PrismaService } from '../src/prisma/prisma.service';
 import * as pactum from 'pactum';
 import { AuthDto } from '../src/modules/auth/dto';
 import { AuthService } from '../src/modules/auth/auth.service';
+import { MatchupResponse } from 'src/types';
 
 describe('App e2e', () => {
   let app: INestApplication;
@@ -149,12 +150,7 @@ describe('App e2e', () => {
   describe('Movie', () => {
     describe('searchForMovieByTitle', () => {
       it('Should search for a movie by title', async () => {
-        await pactum
-          .spec()
-          .get('/movie/search')
-          .withQueryParams('title', 'Inception')
-          .expectStatus(200)
-          .expectBodyContains('Inception');
+        await pactum.spec().get('/movie/search').withQueryParams('title', 'Inception').expectStatus(200).expectBodyContains('Inception');
 
         await assertMovieExistsInDb();
       });
@@ -501,8 +497,69 @@ describe('App e2e', () => {
         expect(responseBody.length).toBe(1);
       });
     });
-    // TODO: test getting matches, and that theres no duplicates if you rank them and that the first matches include the unranked ones
+
+    describe('matches', () => {
+      it('Should get match with one unranked one', async () => {
+        // Cannot be like as only one movie there (the popular one got from swiping)
+        // Has to include movie 106 as not yet ranked disliked one
+        await pactum
+          .spec()
+          .get('/tournament/matchup')
+          .withHeaders({
+            Authorization: 'Bearer $S{userAt}',
+          })
+          .expectStatus(200)
+          .expectJsonLike({
+            movies: [
+              {
+                id: 106,
+              },
+            ],
+            likedStatus: 'disliked',
+          });
+      });
+
+      it('Should get matches and rank them, never getting duplicates, empty response when all ranked', async () => {
+        const movieIdIterations: number[][] = [];
+
+        // 11 Matchups missing until complete
+        for (let i = 0; i < 11; i++) {
+          movieIdIterations.push((await getMatchupResponse()).movies.map((m) => m.id));
+          await playOutTournamentMatchup(
+            movieIdIterations[movieIdIterations.length - 1][0],
+            movieIdIterations[movieIdIterations.length - 1][1],
+          );
+        }
+
+        // Iterate over movieIdIterations and make sure theres no arrays containing the same two ids, where order doesn't matter
+        for (let i = 0; i < movieIdIterations.length; i++) {
+          for (let j = i + 1; j < movieIdIterations.length; j++) {
+            if (
+              (movieIdIterations[i][0] === movieIdIterations[j][0] && movieIdIterations[i][1] === movieIdIterations[j][1]) ||
+              (movieIdIterations[i][0] === movieIdIterations[j][1] && movieIdIterations[i][1] === movieIdIterations[j][0])
+            ) {
+              throw new Error(`Duplicate matchup found at indexes ${i} and ${j}`);
+            }
+          }
+        }
+
+        // Should get empty response, all movies ranked against each other
+        await pactum
+          .spec()
+          .get('/tournament/matchup')
+          .withHeaders({
+            Authorization: 'Bearer $S{userAt}',
+          })
+          .expectStatus(200)
+          .expectJsonLike({
+            movies: [],
+            likedStatus: 'undefined',
+          });
+      });
+    });
   });
+
+  // ------------------ Helper functions ------------------
 
   async function assertMovieExistsInDb(id?: number, maxAttempts = 3, delay = 200) {
     let attempts = 0;
@@ -542,9 +599,7 @@ describe('App e2e', () => {
       if (ratings.length > 0 && ratings[0].likedStatus === expectedLikedStatus) {
         return; // Rating with specified likedStatus and movieId for userIdTemp found, exit the function
       } else if (ratings.length > 0 && ratings[0].likedStatus !== expectedLikedStatus) {
-        throw new Error(
-          `Rating with movieId ${movieId} for user ${userIdTemp} found in database but with wrong likedStatus.`,
-        );
+        throw new Error(`Rating with movieId ${movieId} for user ${userIdTemp} found in database but with wrong likedStatus.`);
       }
 
       // Wait before the next attempt
@@ -553,18 +608,10 @@ describe('App e2e', () => {
     }
 
     // If the loop completes without returning, throw an error
-    throw new Error(
-      `Rating for movieId ${movieId} and user ${userIdTemp} not found in database after ${maxAttempts} attempts.`,
-    );
+    throw new Error(`Rating for movieId ${movieId} and user ${userIdTemp} not found in database after ${maxAttempts} attempts.`);
   }
 
-  async function assertTournamentRatingExistsInDb(
-    winnerId: number,
-    loserId: number,
-    likedStatus: string,
-    maxAttempts = 3,
-    delay = 200,
-  ) {
+  async function assertTournamentRatingExistsInDb(winnerId: number, loserId: number, likedStatus: string, maxAttempts = 3, delay = 200) {
     let attempts = 0;
     const query = {
       where: {
@@ -641,5 +688,22 @@ describe('App e2e', () => {
       .withPathParams('id', movieId)
       .withPathParams('action', likedStatus)
       .expectStatus(201);
+  }
+
+  async function getMatchupResponse(): Promise<MatchupResponse> {
+    let body;
+    await pactum
+      .spec()
+      .get('/tournament/matchup')
+      .withHeaders({
+        Authorization: 'Bearer $S{userAt}',
+      })
+      .expectStatus(200)
+      .toss()
+      .then((res) => {
+        body = res.body;
+      });
+
+    return body;
   }
 });
