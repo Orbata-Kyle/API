@@ -14,10 +14,7 @@ export class SwipeService {
     const now = new Date();
     const tvelveHours = 12 * 60 * 60 * 1000;
 
-    if (
-      !this.popularMoviesCacheLastFetched ||
-      now.getTime() - this.popularMoviesCacheLastFetched.getTime() > tvelveHours
-    ) {
+    if (!this.popularMoviesCacheLastFetched || now.getTime() - this.popularMoviesCacheLastFetched.getTime() > tvelveHours) {
       this.popularMoviesCache = await this.theMovieDb.getPopularMovies();
       this.prisma.saveMoviesToDb(this.popularMoviesCache, true);
       this.popularMoviesCacheLastFetched = now;

@@ -2,3 +2,8 @@
 import { Movie } from '@prisma/client';
 
 export type MovieWithRank = Movie & { rank: string };
+
+export interface MatchupResponse {
+  movies: Movie[];
+  likedStatus: string;
+}

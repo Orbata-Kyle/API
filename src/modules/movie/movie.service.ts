@@ -21,12 +21,8 @@ export class MovieService {
     const movieToSave: Prisma.MovieCreateInput = {
       id: movieFromApi.id,
       title: movieFromApi.original_title,
-      backdropUrl: movieFromApi.backdrop_path
-        ? `https://image.tmdb.org/t/p/original${movieFromApi.backdrop_path}`
-        : undefined,
-      posterUrl: movieFromApi.poster_path
-        ? `https://image.tmdb.org/t/p/original${movieFromApi.poster_path}`
-        : undefined,
+      backdropUrl: movieFromApi.backdrop_path ? `https://image.tmdb.org/t/p/original${movieFromApi.backdrop_path}` : undefined,
+      posterUrl: movieFromApi.poster_path ? `https://image.tmdb.org/t/p/original${movieFromApi.poster_path}` : undefined,
       releaseDate: new Date(movieFromApi.release_date),
       synopsis: movieFromApi.overview,
     };

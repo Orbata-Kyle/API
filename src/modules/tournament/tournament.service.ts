@@ -3,14 +3,11 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { TournamentGraphService } from './graph/tournament-graph.service';
 import logger from '../../utils/logging/winston-config';
 import { Movie, TournamentRating, UserMovieRating } from '@prisma/client';
-import { MovieWithRank } from '../../types';
+import { MatchupResponse, MovieWithRank } from '../../types';
 
 @Injectable()
 export class TournamentService {
-  constructor(
-    private readonly prismaService: PrismaService,
-    private readonly tournamentGraphService: TournamentGraphService,
-  ) {}
+  constructor(private readonly prismaService: PrismaService, private readonly tournamentGraphService: TournamentGraphService) {}
 
   async getUsersTournamentRankings(userId: number, liked: boolean): Promise<MovieWithRank[]> {
     const rankings = await this.tournamentGraphService.getUsersTournamentRankings(userId, liked);
@@ -59,7 +56,7 @@ export class TournamentService {
     return 'Successfully ranked movie';
   }
 
-  async getMatchup(userId: number): Promise<Movie[]> {
+  async getMatchup(userId: number): Promise<MatchupResponse> {
     const usersTournamentRanking = await this.prismaService.tournamentRating.findMany({
       where: { userId },
     });
@@ -67,7 +64,7 @@ export class TournamentService {
     // Ranomize if getting liked or disliked movies
     // TODO: Make this depend on the user's preferences or where the movie counts in tournament rankins are lower
     // TODO: Rank unranked movie against established movie from middle of ranking to find place faster
-    const liked = Math.random() < 0.5;
+    let liked = Math.random() < 0.5;
     let userSwipedMovies = await this.prismaService.userMovieRating.findMany({
       where: { userId, likedStatus: liked ? 'liked' : 'disliked' },
     });
@@ -76,15 +73,14 @@ export class TournamentService {
         where: { userId, likedStatus: liked ? 'disliked' : 'liked' },
       });
       if (userSwipedMovies.length < 2) {
-        return [];
+        return { movies: [], likedStatus: 'undefined' };
       }
+      liked = !liked;
     }
     // Shuffle array to make matchups random
     userSwipedMovies.sort(() => Math.random() - 0.5);
     logger.info(
-      `Getting matchup of ${liked ? 'liked' : 'disliked'} movies for user ${userId} with ${
-        userSwipedMovies.length
-      } swiped movies`,
+      `Getting matchup of ${liked ? 'liked' : 'disliked'} movies for user ${userId} with ${userSwipedMovies.length} swiped movies`,
     );
 
     // Count how many times each movie has been ranked
@@ -111,26 +107,24 @@ export class TournamentService {
 
       // Remove the second best movie from the array so they don't get matched up again
       if (matchupExists) {
-        logger.info(
-          `Matchup ${matchupMovies[0].id} and ${matchupMovies[1].id} already exists for user ${userId}, finding new matchup`,
-        );
+        logger.info(`Matchup ${matchupMovies[0].id} and ${matchupMovies[1].id} already exists for user ${userId}, finding new matchup`);
         userSwipedMovies.splice(
           userSwipedMovies.findIndex((m) => m.movieId === matchupMovies[1].id),
           1,
         );
         if (userSwipedMovies.length < 2) {
           // No matchups left
-          return [];
+          return { movies: [], likedStatus: 'undefined' };
         }
       }
     }
-    return matchupMovies;
+    return {
+      movies: matchupMovies,
+      likedStatus: liked ? 'liked' : 'disliked',
+    };
   }
 
-  private async findMatchupMovies(
-    movieCounts: Map<number, number>,
-    userSwipedMovies: UserMovieRating[],
-  ): Promise<Movie[]> {
+  private async findMatchupMovies(movieCounts: Map<number, number>, userSwipedMovies: UserMovieRating[]): Promise<Movie[]> {
     // Find the two movies with the lowest count or no count
     const lowestCountMovie: { movieId: number; count: number } = {
       movieId: -1,
@@ -141,18 +135,12 @@ export class TournamentService {
       count: Number.MAX_SAFE_INTEGER,
     };
     for (const userSwipedMovie of userSwipedMovies) {
-      if (
-        movieCounts.has(userSwipedMovie.movieId) &&
-        movieCounts.get(userSwipedMovie.movieId)! < lowestCountMovie.count
-      ) {
+      if (movieCounts.has(userSwipedMovie.movieId) && movieCounts.get(userSwipedMovie.movieId)! < lowestCountMovie.count) {
         secondLowestCountMovie.movieId = lowestCountMovie.movieId;
         secondLowestCountMovie.count = lowestCountMovie.count;
         lowestCountMovie.movieId = userSwipedMovie.movieId;
         lowestCountMovie.count = movieCounts.get(userSwipedMovie.movieId)!;
-      } else if (
-        movieCounts.has(userSwipedMovie.movieId) &&
-        movieCounts.get(userSwipedMovie.movieId)! < secondLowestCountMovie.count
-      ) {
+      } else if (movieCounts.has(userSwipedMovie.movieId) && movieCounts.get(userSwipedMovie.movieId)! < secondLowestCountMovie.count) {
         secondLowestCountMovie.movieId = userSwipedMovie.movieId;
         secondLowestCountMovie.count = movieCounts.get(userSwipedMovie.movieId)!;
       } else if (!movieCounts.has(userSwipedMovie.movieId)) {
@@ -180,11 +168,7 @@ export class TournamentService {
   }
 
   // Finds an existing rating for a user and returns the tournamentRating
-  private async findExistingPreference(
-    userId: number,
-    winnerId: number,
-    loserId: number,
-  ): Promise<undefined | TournamentRating> {
+  private async findExistingPreference(userId: number, winnerId: number, loserId: number): Promise<undefined | TournamentRating> {
     const existingRating = await this.prismaService.tournamentRating.findFirst({
       where: {
         userId,
@@ -198,12 +182,7 @@ export class TournamentService {
     return existingRating ?? undefined;
   }
 
-  private async addTournamentRankToDatabase(
-    userId: number,
-    winnerId: number,
-    loserId: number,
-    liked: boolean,
-  ): Promise<void> {
+  private async addTournamentRankToDatabase(userId: number, winnerId: number, loserId: number, liked: boolean): Promise<void> {
     const existingPreference = await this.findExistingPreference(userId, winnerId, loserId);
 
     // If existingPreference undefined -> new preference, if not equal to winnerId -> update, else nothing
@@ -211,44 +190,25 @@ export class TournamentService {
       await this.prismaService.tournamentRating.create({
         data: { userId, movie1Id: winnerId, movie2Id: loserId, winnerId, likedStatus: liked ? 'liked' : 'disliked' },
       });
-      logger.info(
-        `Added new ${
-          liked ? 'liked' : 'dislike'
-        } preference for user ${userId}, for winner ${winnerId} and loser ${loserId}`,
-      );
-    } else if (
-      existingPreference.likedStatus !== (liked ? 'liked' : 'disliked') &&
-      existingPreference.winnerId !== winnerId
-    ) {
+      logger.info(`Added new ${liked ? 'liked' : 'dislike'} preference for user ${userId}, for winner ${winnerId} and loser ${loserId}`);
+    } else if (existingPreference.likedStatus !== (liked ? 'liked' : 'disliked') && existingPreference.winnerId !== winnerId) {
       await this.prismaService.tournamentRating.update({
         where: { id: existingPreference.id },
         data: { likedStatus: liked ? 'liked' : 'disliked', winnerId },
       });
-      logger.info(
-        `Updated ${
-          liked ? 'liked' : 'dislike'
-        } preference for user ${userId}, for winner ${winnerId} and loser ${loserId}`,
-      );
+      logger.info(`Updated ${liked ? 'liked' : 'dislike'} preference for user ${userId}, for winner ${winnerId} and loser ${loserId}`);
     } else if (existingPreference.likedStatus !== (liked ? 'liked' : 'disliked')) {
       await this.prismaService.tournamentRating.update({
         where: { id: existingPreference.id },
         data: { likedStatus: liked ? 'liked' : 'disliked' },
       });
-      logger.info(
-        `Updated ${
-          liked ? 'liked' : 'dislike'
-        } preference for user ${userId}, for winner ${winnerId} and loser ${loserId}`,
-      );
+      logger.info(`Updated ${liked ? 'liked' : 'dislike'} preference for user ${userId}, for winner ${winnerId} and loser ${loserId}`);
     } else if (existingPreference.winnerId !== winnerId) {
       await this.prismaService.tournamentRating.update({
         where: { id: existingPreference.id },
         data: { winnerId },
       });
-      logger.info(
-        `Updated ${
-          liked ? 'liked' : 'dislike'
-        } preference for user ${userId}, for winner ${winnerId} and loser ${loserId}`,
-      );
+      logger.info(`Updated ${liked ? 'liked' : 'dislike'} preference for user ${userId}, for winner ${winnerId} and loser ${loserId}`);
     }
   }
 }

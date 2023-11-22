@@ -43,12 +43,7 @@ export class TournamentController {
       throw new BadRequestException('User has not swiped both movies with the same status');
     }
 
-    return this.tournamentService.tournamentRankMovieForUser(
-      userId,
-      dto.winnerId,
-      dto.loserId,
-      swipedMovie1.likedStatus === 'liked',
-    );
+    return this.tournamentService.tournamentRankMovieForUser(userId, dto.winnerId, dto.loserId, swipedMovie1.likedStatus === 'liked');
   }
 
   @UseGuards(JwtGuard)
