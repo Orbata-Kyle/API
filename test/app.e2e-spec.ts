@@ -320,6 +320,29 @@ describe('App e2e', () => {
   });
 
   describe('Tournament', () => {
+    describe('matches before ranking', () => {
+      it('Should get match with 2 fresh movies', async () => {
+        await pactum
+          .spec()
+          .get('/tournament/matchup')
+          .withHeaders({
+            Authorization: 'Bearer $S{userAt}',
+          })
+          .expectStatus(200)
+          .expectJsonLike({
+            movies: [
+              {
+                id: 102,
+              },
+              {
+                id: 100,
+              },
+            ],
+            likedStatus: 'liked',
+          });
+      });
+    });
+
     describe('rank', () => {
       it('Should throw if winnerId and loserId are the same', () => {
         return pactum
@@ -548,7 +571,7 @@ describe('App e2e', () => {
       });
     });
 
-    describe('matches', () => {
+    describe('matches after ranking', () => {
       it('Should get match with one unranked one', async () => {
         // Cannot be like as only one movie there (the popular one got from swiping)
         // Has to include movie 106 as not yet ranked disliked one
@@ -574,7 +597,7 @@ describe('App e2e', () => {
         await rateMovie('109', 'disliked');
         const movieIdIterations: number[][] = [];
 
-        // 10 Matchups missing until complete and no more matchups without circles
+        // 10 Matchups missing until complete and no more matchups without cycles
         for (let i = 0; i < 10; i++) {
           movieIdIterations.push((await getMatchupResponse()).movies.map((m) => m.id));
           await playOutTournamentMatchup(

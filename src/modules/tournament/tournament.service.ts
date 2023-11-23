@@ -137,6 +137,14 @@ export class TournamentService {
         });
         logger.info(`Returning fresh matchup for user ${userId} with ${liked ? 'liked' : 'disliked'} movies ${movie1.id} and ${movie2.id}`);
         return [movie1, movie2];
+      } else {
+        // No ranked movies yet, so just return the first two fresh movies
+        if (freshMoviesToRank.length >= 2) {
+          const movie2 = await this.prismaService.movie.findFirst({
+            where: { id: freshMoviesToRank[1].movieId },
+          });
+          return [movie1, movie2];
+        }
       }
     }
 
