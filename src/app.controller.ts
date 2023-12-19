@@ -23,7 +23,7 @@ export class AppController {
 
       const similarity = this.similarityService.getSimilarity([], []);
 
-      logger.info(`Similarity between ${firstUser.name} and ${nextUser.name}: ${similarity}`);
+      logger.info(`Similarity between ${firstUser.id} and ${nextUser.id}: ${similarity}`);
     }
 
     return { users };

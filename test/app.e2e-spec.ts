@@ -86,6 +86,23 @@ describe('App e2e', () => {
       it('should signup', () => {
         return pactum.spec().post('/auth/signup').withBody(dto).expectStatus(201);
       });
+      it('should signup with first and last name', () => {
+        return pactum
+          .spec()
+          .post('/auth/signup')
+          .withBody({
+            email: 'test1@test.com',
+            password: 'test',
+            firstName: 'testFirst',
+            lastName: 'testLast',
+          })
+          .expectStatus(201)
+          .expectJsonLike({
+            firstName: 'testFirst',
+            lastName: 'testLast',
+            email: 'test1@test.com',
+          });
+      });
       it('should throw if email taken', () => {
         return pactum.spec().post('/auth/signup').withBody(dto).expectStatus(403);
       });
