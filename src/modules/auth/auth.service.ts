@@ -24,7 +24,9 @@ export class AuthService {
       });
 
       logger.info(`User ${user.email} with id ${user.id} created`);
-      return this.signToken(user.id, user.email);
+
+      const returnObj = { ...user, hash: undefined, access_token: (await this.signToken(user.id, user.email)).access_token };
+      return returnObj;
     } catch (error) {
       if (error.constructor.name === 'PrismaClientKnownRequestError') {
         if (error.code === 'P2002') {
@@ -49,8 +51,10 @@ export class AuthService {
     const pwMatches = await argon.verify(user.hash, dto.password);
     // if password incorrect throw exception
     if (!pwMatches) throw new ForbiddenException('Password incorrect');
+
     logger.info(`User ${user.email} with id ${user.id} logged in`);
-    return this.signToken(user.id, user.email);
+    const returnObj = { ...user, hash: undefined, access_token: (await this.signToken(user.id, user.email)).access_token };
+    return returnObj;
   }
 
   async signToken(userId: number, email: string): Promise<{ access_token: string }> {
