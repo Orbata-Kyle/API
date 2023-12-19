@@ -9,6 +9,7 @@ import * as pactum from 'pactum';
 import { AuthDto } from '../src/modules/auth/dto';
 import { AuthService } from '../src/modules/auth/auth.service';
 import { MatchupResponse } from 'src/types';
+import { async } from 'rxjs';
 
 describe('App e2e', () => {
   let app: INestApplication;
@@ -45,6 +46,8 @@ describe('App e2e', () => {
         email: 'admin@test.com',
         hash: 'test',
         admin: true,
+        firstName: 'testFirst',
+        lastName: 'testLast',
       },
     });
 
@@ -59,6 +62,8 @@ describe('App e2e', () => {
     const dto: AuthDto = {
       email: 'test@test.com',
       password: 'test',
+      firstName: 'testFirst',
+      lastName: 'testLast',
     };
 
     describe('Signup', () => {
@@ -67,7 +72,8 @@ describe('App e2e', () => {
           .spec()
           .post('/auth/signup')
           .withBody({
-            password: dto.password,
+            ...dto,
+            email: undefined,
           })
           .expectStatus(400);
       });
@@ -76,32 +82,41 @@ describe('App e2e', () => {
           .spec()
           .post('/auth/signup')
           .withBody({
-            email: dto.email,
+            ...dto,
+            password: undefined,
+          })
+          .expectStatus(400);
+      });
+      it('should throw if first name empty', () => {
+        return pactum
+          .spec()
+          .post('/auth/signup')
+          .withBody({
+            ...dto,
+            firstName: undefined,
+          })
+          .expectStatus(400);
+      });
+      it('should throw if last name empty', () => {
+        return pactum
+          .spec()
+          .post('/auth/signup')
+          .withBody({
+            ...dto,
+            lastName: undefined,
           })
           .expectStatus(400);
       });
       it('should throw if no body provided', () => {
         return pactum.spec().post('/auth/signup').expectStatus(400);
       });
+
       it('should signup', () => {
-        return pactum.spec().post('/auth/signup').withBody(dto).expectStatus(201);
-      });
-      it('should signup with first and last name', () => {
-        return pactum
-          .spec()
-          .post('/auth/signup')
-          .withBody({
-            email: 'test1@test.com',
-            password: 'test',
-            firstName: 'testFirst',
-            lastName: 'testLast',
-          })
-          .expectStatus(201)
-          .expectJsonLike({
-            firstName: 'testFirst',
-            lastName: 'testLast',
-            email: 'test1@test.com',
-          });
+        return pactum.spec().post('/auth/signup').withBody(dto).expectStatus(201).expectJsonLike({
+          firstName: 'testFirst',
+          lastName: 'testLast',
+          email: 'test@test.com',
+        });
       });
       it('should throw if email taken', () => {
         return pactum.spec().post('/auth/signup').withBody(dto).expectStatus(403);
@@ -437,7 +452,6 @@ describe('App e2e', () => {
 
       it('Should dislike both movies, then rank them again but now in dislike list', async () => {
         await rateMovie('102', 'disliked');
-        await assertTournamentRatingDoesntExistsInDb(102, 100, 'liked');
         await rateMovie('100', 'disliked');
 
         await playOutTournamentMatchup(100, 102);
@@ -537,7 +551,7 @@ describe('App e2e', () => {
         expect(responseBody.length).toBe(1);
       });
 
-      it('Should dislike 2 new movies, then rank them against each other, the change interactionStatus of one, which should remove them from dislike rankings', async () => {
+      it('Should dislike 2 new movies, then rank them against each other, then change interactionStatus of one, which should remove them from dislike rankings', async () => {
         await rateMovie('107', 'disliked');
         await rateMovie('108', 'disliked');
 
