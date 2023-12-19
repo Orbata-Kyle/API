@@ -15,12 +15,12 @@ export class TournamentController {
   ) {}
 
   @UseGuards(JwtGuard)
-  @Get('rankings/:likedStatus')
-  async getUsersTournamentRankings(@GetUser('id') userId: number, @Param('likedStatus') likedStatus: string) {
-    if (!['liked', 'disliked'].includes(likedStatus)) {
-      throw new BadRequestException('Invalid likedStatus');
+  @Get('rankings/:interactionStatus')
+  async getUsersTournamentRankings(@GetUser('id') userId: number, @Param('interactionStatus') interactionStatus: string) {
+    if (!['liked', 'disliked'].includes(interactionStatus)) {
+      throw new BadRequestException('Invalid interactionStatus');
     }
-    return this.tournamentService.getUsersTournamentRankings(userId, likedStatus === 'liked');
+    return this.tournamentService.getUsersTournamentRankings(userId, interactionStatus === 'liked');
   }
 
   @UseGuards(JwtGuard)
@@ -39,11 +39,11 @@ export class TournamentController {
     if (!swipedMovie1 || !swipedMovie2) {
       throw new BadRequestException('User has not swiped both movies');
     }
-    if (swipedMovie1.likedStatus !== swipedMovie2.likedStatus) {
+    if (swipedMovie1.interactionStatus !== swipedMovie2.interactionStatus) {
       throw new BadRequestException('User has not swiped both movies with the same status');
     }
 
-    return this.tournamentService.tournamentRankMovieForUser(userId, dto.winnerId, dto.loserId, swipedMovie1.likedStatus === 'liked');
+    return this.tournamentService.tournamentRankMovieForUser(userId, dto.winnerId, dto.loserId, swipedMovie1.interactionStatus === 'liked');
   }
 
   @UseGuards(JwtGuard)
@@ -53,11 +53,11 @@ export class TournamentController {
   }
 
   @UseGuards(JwtGuard)
-  @Get('cycle/:likedStatus')
-  async willCauseCircle(@GetUser('id') userId: number, @Param('likedStatus') likedStatus: string) {
-    if (!['liked', 'disliked'].includes(likedStatus)) {
-      throw new BadRequestException('Invalid likedStatus');
+  @Get('cycle/:interactionStatus')
+  async willCauseCircle(@GetUser('id') userId: number, @Param('interactionStatus') interactionStatus: string) {
+    if (!['liked', 'disliked'].includes(interactionStatus)) {
+      throw new BadRequestException('Invalid interactionStatus');
     }
-    return this.tournamentService.findCycle(userId, likedStatus === 'liked');
+    return this.tournamentService.findCycle(userId, interactionStatus === 'liked');
   }
 }

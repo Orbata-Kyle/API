@@ -34,27 +34,27 @@ model User {
 }
 
 model UserMovieRating {
-  id          Int     @id @default(autoincrement())
-  userId      Int
-  movieId     Int
-  likedStatus String?
-  movie       Movie   @relation(fields: [movieId], references: [id], onDelete: Cascade)
-  user        User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                Int     @id @default(autoincrement())
+  userId            Int
+  movieId           Int
+  interactionStatus String?
+  movie             Movie   @relation(fields: [movieId], references: [id], onDelete: Cascade)
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([movieId])
   @@index([userId])
 }
 
 model TournamentRating {
-  id          Int     @id @default(autoincrement())
-  userId      Int
-  movie1Id    Int
-  movie2Id    Int
-  winnerId    Int // The movieId of the movie the user preferred
-  likedStatus String?
-  user        User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  movie1      Movie   @relation(fields: [movie1Id], references: [id], name: "movie1", onDelete: Cascade)
-  movie2      Movie   @relation(fields: [movie2Id], references: [id], name: "movie2", onDelete: Cascade)
+  id                Int     @id @default(autoincrement())
+  userId            Int
+  movie1Id          Int
+  movie2Id          Int
+  winnerId          Int // The movieId of the movie the user preferred
+  interactionStatus String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  movie1            Movie   @relation(fields: [movie1Id], references: [id], name: "movie1", onDelete: Cascade)
+  movie2            Movie   @relation(fields: [movie2Id], references: [id], name: "movie2", onDelete: Cascade)
 
   @@unique([userId, movie1Id, movie2Id])
   @@index([userId])

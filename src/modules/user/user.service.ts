@@ -17,7 +17,7 @@ export class UserService {
       where: { userId: userId },
       select: {
         movie: { select: { id: true, title: true } },
-        likedStatus: true,
+        interactionStatus: true,
       },
     });
     logger.info(`User ${userId} ratings retrieved`);
@@ -31,7 +31,7 @@ export class UserService {
         UserMovieRating: {
           select: {
             movie: { select: { id: true, title: true } },
-            likedStatus: true,
+            interactionStatus: true,
           },
         },
       },

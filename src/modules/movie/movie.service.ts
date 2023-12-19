@@ -89,17 +89,22 @@ export class MovieService {
       logger.info(`User ${userId} already rated movie ${id}`);
       const updatedRating = await this.prisma.userMovieRating.update({
         where: { id: existingRating.id },
-        data: { likedStatus: action },
+        data: { interactionStatus: action },
       });
-      if (existingRating.likedStatus !== 'unseen') {
-        await this.tournamentService.removeMovieRankingsAsLikedStatusChanged(userId, parseInt(id), existingRating.likedStatus, action);
+      if (existingRating.interactionStatus !== 'unseen') {
+        await this.tournamentService.removeMovieRankingsAsInteractionStatusChanged(
+          userId,
+          parseInt(id),
+          existingRating.interactionStatus,
+          action,
+        );
       }
       return updatedRating;
     }
 
     const movieRating = await this.prisma.userMovieRating.create({
       data: {
-        likedStatus: action,
+        interactionStatus: action,
         movieId: movieFromDb.id,
         userId: userId,
       },

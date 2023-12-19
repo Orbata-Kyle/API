@@ -5,5 +5,5 @@ export type MovieWithRank = Movie & { rank: string };
 
 export interface MatchupResponse {
   movies: Movie[];
-  likedStatus: string;
+  interactionStatus: string;
 }

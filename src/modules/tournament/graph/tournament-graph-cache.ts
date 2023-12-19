@@ -37,7 +37,7 @@ export class TournamentGraphCache {
   private async createGraphForUser(userId: number, liked: boolean): Promise<TournamentGraph> {
     const graph = new TournamentGraph();
     const preferences = await this.prismaService.tournamentRating.findMany({
-      where: { userId, likedStatus: liked ? 'liked' : 'disliked' },
+      where: { userId, interactionStatus: liked ? 'liked' : 'disliked' },
     });
 
     preferences.forEach((pref) => {

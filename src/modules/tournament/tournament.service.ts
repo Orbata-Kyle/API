@@ -36,7 +36,7 @@ export class TournamentService {
 
     // Get all movies from users likes or dislikes with id not in rankings as well as the movies and concat to movies
     const unrankedMovies = await this.prismaService.userMovieRating.findMany({
-      where: { userId, likedStatus: liked ? 'liked' : 'disliked', movieId: { notIn: Array.from(rankings.keys()) } },
+      where: { userId, interactionStatus: liked ? 'liked' : 'disliked', movieId: { notIn: Array.from(rankings.keys()) } },
       include: { movie: true },
     });
     movies = movies.concat(
@@ -76,18 +76,23 @@ export class TournamentService {
     }
     if (movies.length === 0) {
       logger.info(`No Matchups remaining for user ${userId}`);
-      return { likedStatus: 'undefined', movies: [] };
+      return { interactionStatus: 'undefined', movies: [] };
     }
-    return { likedStatus: liked ? 'liked' : 'disliked', movies };
+    return { interactionStatus: liked ? 'liked' : 'disliked', movies };
   }
 
-  async removeMovieRankingsAsLikedStatusChanged(userId: number, movieId: number, prevLikedStatus: string, newLikedStatus: string) {
-    if (prevLikedStatus !== 'liked' && prevLikedStatus !== 'disliked') return;
-    if (newLikedStatus === prevLikedStatus) return;
+  async removeMovieRankingsAsInteractionStatusChanged(
+    userId: number,
+    movieId: number,
+    prevInteractionStatus: string,
+    newInteractionStatus: string,
+  ) {
+    if (prevInteractionStatus !== 'liked' && prevInteractionStatus !== 'disliked') return;
+    if (newInteractionStatus === prevInteractionStatus) return;
 
     // Get all matchups with this movie
     const matchups = await this.prismaService.tournamentRating.findMany({
-      where: { userId, likedStatus: prevLikedStatus, OR: [{ movie1Id: movieId }, { movie2Id: movieId }] },
+      where: { userId, interactionStatus: prevInteractionStatus, OR: [{ movie1Id: movieId }, { movie2Id: movieId }] },
     });
 
     if (matchups.length === 0) return;
@@ -98,26 +103,26 @@ export class TournamentService {
         userId,
         matchup.movie1Id,
         matchup.movie2Id,
-        prevLikedStatus === 'liked',
+        prevInteractionStatus === 'liked',
       );
     }
 
     // Remove them from the database
     await this.prismaService.tournamentRating.deleteMany({
-      where: { userId, likedStatus: prevLikedStatus, OR: [{ movie1Id: movieId }, { movie2Id: movieId }] },
+      where: { userId, interactionStatus: prevInteractionStatus, OR: [{ movie1Id: movieId }, { movie2Id: movieId }] },
     });
 
     logger.info(
-      `Removed ${matchups.length} matchups for user ${userId} with movie ${movieId} as likedStatus changed from ${prevLikedStatus} to ${newLikedStatus}`,
+      `Removed ${matchups.length} matchups for user ${userId} with movie ${movieId} as interactionStatus changed from ${prevInteractionStatus} to ${newInteractionStatus}`,
     );
   }
 
   private async findMatchupMovies(liked: boolean, userId: number): Promise<Movie[]> {
     const usersTournamentRanking = await this.prismaService.tournamentRating.findMany({
-      where: { userId, likedStatus: liked ? 'liked' : 'disliked' },
+      where: { userId, interactionStatus: liked ? 'liked' : 'disliked' },
     });
     const userSwipedMovies = await this.prismaService.userMovieRating.findMany({
-      where: { userId, likedStatus: liked ? 'liked' : 'disliked' },
+      where: { userId, interactionStatus: liked ? 'liked' : 'disliked' },
     });
 
     // Filter movies that have been swiped on but not ranked
@@ -185,19 +190,19 @@ export class TournamentService {
     // This is what is done for the graph in the addPreference method in tournament-graph.ts
     if (!existingPreference) {
       await this.prismaService.tournamentRating.create({
-        data: { userId, movie1Id: winnerId, movie2Id: loserId, winnerId, likedStatus: liked ? 'liked' : 'disliked' },
+        data: { userId, movie1Id: winnerId, movie2Id: loserId, winnerId, interactionStatus: liked ? 'liked' : 'disliked' },
       });
       logger.info(`Added new ${liked ? 'liked' : 'dislike'} preference for user ${userId}, for winner ${winnerId} and loser ${loserId}`);
-    } else if (existingPreference.likedStatus !== (liked ? 'liked' : 'disliked') && existingPreference.winnerId !== winnerId) {
+    } else if (existingPreference.interactionStatus !== (liked ? 'liked' : 'disliked') && existingPreference.winnerId !== winnerId) {
       await this.prismaService.tournamentRating.update({
         where: { id: existingPreference.id },
-        data: { likedStatus: liked ? 'liked' : 'disliked', winnerId },
+        data: { interactionStatus: liked ? 'liked' : 'disliked', winnerId },
       });
       logger.info(`Updated ${liked ? 'liked' : 'dislike'} preference for user ${userId}, for winner ${winnerId} and loser ${loserId}`);
-    } else if (existingPreference.likedStatus !== (liked ? 'liked' : 'disliked')) {
+    } else if (existingPreference.interactionStatus !== (liked ? 'liked' : 'disliked')) {
       await this.prismaService.tournamentRating.update({
         where: { id: existingPreference.id },
-        data: { likedStatus: liked ? 'liked' : 'disliked' },
+        data: { interactionStatus: liked ? 'liked' : 'disliked' },
       });
       logger.info(`Updated ${liked ? 'liked' : 'dislike'} preference for user ${userId}, for winner ${winnerId} and loser ${loserId}`);
     } else if (existingPreference.winnerId !== winnerId) {

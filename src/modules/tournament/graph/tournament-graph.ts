@@ -35,7 +35,7 @@ export class TournamentGraph {
   }
 
   findAndRemovePreferenceCombination(movie1Id: number, movie2Id: number): boolean {
-    // this can be triggered if these are two movies that that were moved to another graph (liked -> disliked or vice versa) as their likedStatus changed
+    // this can be triggered if these are two movies that that were moved to another graph (liked -> disliked or vice versa) as their interactionStatus changed
     if (this.adjacencyList.has(movie1Id) && this.adjacencyList.get(movie1Id)!.has(movie2Id)) {
       this.adjacencyList.get(movie1Id)!.delete(movie2Id);
       this.scanAndDeleteUnusedMovie(movie1Id);

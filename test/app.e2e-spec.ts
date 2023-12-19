@@ -242,13 +242,13 @@ describe('App e2e', () => {
               movie: {
                 id: 100,
               },
-              likedStatus: 'liked',
+              interactionStatus: 'liked',
             },
             {
               movie: {
                 id: 101,
               },
-              likedStatus: 'unseen',
+              interactionStatus: 'unseen',
             },
           ]);
       });
@@ -281,13 +281,13 @@ describe('App e2e', () => {
                 movie: {
                   id: 100,
                 },
-                likedStatus: 'liked',
+                interactionStatus: 'liked',
               },
               {
                 movie: {
                   id: 101,
                 },
-                likedStatus: 'unseen',
+                interactionStatus: 'unseen',
               },
             ],
           });
@@ -355,7 +355,7 @@ describe('App e2e', () => {
                 id: 100,
               },
             ],
-            likedStatus: 'liked',
+            interactionStatus: 'liked',
           });
       });
     });
@@ -437,6 +437,7 @@ describe('App e2e', () => {
 
       it('Should dislike both movies, then rank them again but now in dislike list', async () => {
         await rateMovie('102', 'disliked');
+        await assertTournamentRatingDoesntExistsInDb(102, 100, 'liked');
         await rateMovie('100', 'disliked');
 
         await playOutTournamentMatchup(100, 102);
@@ -536,7 +537,7 @@ describe('App e2e', () => {
         expect(responseBody.length).toBe(1);
       });
 
-      it('Should dislike 2 new movies, then rank them against each other, the change likedStatus of one, which should remove them from dislike rankings', async () => {
+      it('Should dislike 2 new movies, then rank them against each other, the change interactionStatus of one, which should remove them from dislike rankings', async () => {
         await rateMovie('107', 'disliked');
         await rateMovie('108', 'disliked');
 
@@ -605,7 +606,7 @@ describe('App e2e', () => {
                 id: 106,
               },
             ],
-            likedStatus: 'disliked',
+            interactionStatus: 'disliked',
           });
       });
 
@@ -645,7 +646,7 @@ describe('App e2e', () => {
           .expectStatus(200)
           .expectJsonLike({
             movies: [],
-            likedStatus: 'undefined',
+            interactionStatus: 'undefined',
           });
       });
     });
@@ -702,7 +703,7 @@ describe('App e2e', () => {
 
   async function assertUserMovieRatingExistsInDb(
     movieId: number,
-    expectedLikedStatus: string,
+    expectedInteractionStatus: string,
     userIdTemp = userId,
     maxAttempts = 3,
     delay = 200,
@@ -715,10 +716,10 @@ describe('App e2e', () => {
       if (ratings.length > 1) {
         throw new Error(`Multiple ratings found for user ${userIdTemp} and movie ${movieId}`);
       }
-      if (ratings.length > 0 && ratings[0].likedStatus === expectedLikedStatus) {
-        return; // Rating with specified likedStatus and movieId for userIdTemp found, exit the function
-      } else if (ratings.length > 0 && ratings[0].likedStatus !== expectedLikedStatus) {
-        throw new Error(`Rating with movieId ${movieId} for user ${userIdTemp} found in database but with wrong likedStatus.`);
+      if (ratings.length > 0 && ratings[0].interactionStatus === expectedInteractionStatus) {
+        return; // Rating with specified interactionStatus and movieId for userIdTemp found, exit the function
+      } else if (ratings.length > 0 && ratings[0].interactionStatus !== expectedInteractionStatus) {
+        throw new Error(`Rating with movieId ${movieId} for user ${userIdTemp} found in database but with wrong interactionStatus.`);
       }
 
       // Wait before the next attempt
@@ -730,12 +731,18 @@ describe('App e2e', () => {
     throw new Error(`Rating for movieId ${movieId} and user ${userIdTemp} not found in database after ${maxAttempts} attempts.`);
   }
 
-  async function assertTournamentRatingExistsInDb(winnerId: number, loserId: number, likedStatus: string, maxAttempts = 3, delay = 200) {
+  async function assertTournamentRatingExistsInDb(
+    winnerId: number,
+    loserId: number,
+    interactionStatus: string,
+    maxAttempts = 3,
+    delay = 200,
+  ) {
     let attempts = 0;
     const query = {
       where: {
         winnerId,
-        likedStatus,
+        interactionStatus,
         OR: [
           { movie1Id: winnerId, movie2Id: loserId },
           { movie1Id: loserId, movie2Id: winnerId },
@@ -759,15 +766,15 @@ describe('App e2e', () => {
 
     // If the loop completes without returning, throw an error
     throw new Error(
-      `${likedStatus} ranking for winner ${winnerId} and loser ${loserId} not found in database after ${maxAttempts} attempts.`,
+      `${interactionStatus} ranking for winner ${winnerId} and loser ${loserId} not found in database after ${maxAttempts} attempts.`,
     );
   }
 
-  async function assertTournamentRatingDoesntExistsInDb(winnerId: number, loserId: number, likedStatus: string) {
+  async function assertTournamentRatingDoesntExistsInDb(winnerId: number, loserId: number, interactionStatus: string) {
     const query = {
       where: {
         winnerId,
-        likedStatus,
+        interactionStatus,
         OR: [
           { movie1Id: winnerId, movie2Id: loserId },
           { movie1Id: loserId, movie2Id: winnerId },
@@ -797,7 +804,7 @@ describe('App e2e', () => {
       .expectStatus(201);
   }
 
-  async function rateMovie(movieId: string, likedStatus: string) {
+  async function rateMovie(movieId: string, interactionStatus: string) {
     await pactum
       .spec()
       .post('/movie/{id}/rate/{action}')
@@ -805,7 +812,7 @@ describe('App e2e', () => {
         Authorization: 'Bearer $S{userAt}',
       })
       .withPathParams('id', movieId)
-      .withPathParams('action', likedStatus)
+      .withPathParams('action', interactionStatus)
       .expectStatus(201);
   }
 
