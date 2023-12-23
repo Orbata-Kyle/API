@@ -3,7 +3,6 @@ import { ConfigService } from '@nestjs/config';
 import axios, { AxiosError } from 'axios';
 import type { Prisma } from '@prisma/client';
 import logger from '../utils/logging/winston-config';
-
 export interface MovieDbMovie {
   adult: boolean;
   backdrop_path: string;
@@ -30,7 +29,7 @@ export class TheMovieDb {
     this.apiKey = this.config.get<string>('THE_MOVIE_DB_API_KEY');
   }
 
-  private toPrismaMovie(movie: MovieDbMovie): Prisma.MovieCreateInput {
+  toPrismaMovie(movie: MovieDbMovie): Prisma.MovieCreateInput {
     return {
       id: movie.id,
       title: movie.original_title,
@@ -41,7 +40,7 @@ export class TheMovieDb {
     };
   }
 
-  async getPopularMovies() {
+  async getPopularMovies(onlyReleased = true): Promise<Prisma.MovieCreateInput[]> {
     const url = new URL(`${this.apiBaseUrl}movie/popular`);
 
     const response = await axios.get<{ page: number; results: MovieDbMovie[] }>(url.toString(), {
@@ -51,10 +50,17 @@ export class TheMovieDb {
       },
     });
 
-    return response.data.results.map(this.toPrismaMovie);
+    const results: Prisma.MovieCreateInput[] = [];
+    response.data.results.forEach((movie) => {
+      if (onlyReleased && new Date(movie.release_date) > new Date()) {
+        return;
+      }
+      results.push(this.toPrismaMovie(movie));
+    });
+    return results;
   }
 
-  async searchForMovieByTitle(title: string) {
+  async searchForMovieByTitle(title: string, onlyReleased = true): Promise<Prisma.MovieCreateInput[]> {
     const url = new URL(`${this.apiBaseUrl}search/movie`);
     url.searchParams.set('query', title);
 
@@ -65,7 +71,18 @@ export class TheMovieDb {
       },
     });
 
-    return response.data;
+    const results: Prisma.MovieCreateInput[] = [];
+    response.data.results.forEach((movie) => {
+      if (onlyReleased && new Date(movie.release_date) > new Date()) {
+        return;
+      }
+      if (movie.popularity < 5) {
+        return;
+      }
+      results.push(this.toPrismaMovie(movie));
+    });
+
+    return results;
   }
 
   async getMovieById(id: number) {

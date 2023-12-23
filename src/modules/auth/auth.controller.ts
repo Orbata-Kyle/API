@@ -9,7 +9,6 @@ export class AuthController {
   constructor(private authService: AuthService) {}
 
   @Post('signup')
-  @Post('signup')
   @ApiOperation({ summary: 'User Signup' })
   @ApiResponse({ status: 201, description: 'User successfully registered', type: AuthResponseDto })
   @ApiResponse({ status: 403, description: 'Forbidden - Email already taken' })
