@@ -15,6 +15,7 @@ export class SwipeController {
   @ApiBearerAuth('access-token')
   @ApiOperation({ summary: 'Get Next Movie to Swipe' })
   @ApiResponse({ status: 200, description: 'Next movie to swipe', type: MovieDto })
+  @ApiResponse({ status: 404, description: 'No more movies to swipe' })
   async getNextMovieToSwipe(@GetUser('id') userId: number): Promise<MovieDto> {
     return this.swipeService.getNextMovieToSwipe(userId);
   }

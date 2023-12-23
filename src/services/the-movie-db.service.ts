@@ -24,6 +24,7 @@ export interface MovieDbMovie {
 export class TheMovieDb {
   private apiKey: string;
   private apiBaseUrl = `https://api.themoviedb.org/3/`;
+  private maxPages = 500;
 
   constructor(private config: ConfigService) {
     this.apiKey = this.config.get<string>('THE_MOVIE_DB_API_KEY');
@@ -40,8 +41,10 @@ export class TheMovieDb {
     };
   }
 
-  async getPopularMovies(onlyReleased = true): Promise<Prisma.MovieCreateInput[]> {
-    const url = new URL(`${this.apiBaseUrl}movie/popular`);
+  async getPopularMovies(page: number, onlyReleased = true): Promise<Prisma.MovieCreateInput[]> {
+    if (page > this.maxPages) throw new NotFoundException('No more popular movies');
+    const url = new URL(`${this.apiBaseUrl}movie/popular?page=${page}`);
+    console.log(url.toString());
 
     const response = await axios.get<{ page: number; results: MovieDbMovie[] }>(url.toString(), {
       headers: {
@@ -49,6 +52,7 @@ export class TheMovieDb {
         Accept: 'application/json',
       },
     });
+    if (response.data.results.length === 0) throw new NotFoundException(`No popular movies found on page ${page}`);
 
     const results: Prisma.MovieCreateInput[] = [];
     response.data.results.forEach((movie) => {
@@ -57,6 +61,30 @@ export class TheMovieDb {
       }
       results.push(this.toPrismaMovie(movie));
     });
+    return results;
+  }
+
+  async getTopRatedMovies(page: number, onlyReleased = true): Promise<Prisma.MovieCreateInput[]> {
+    if (page > this.maxPages) throw new NotFoundException('No more popular movies');
+    const url = new URL(`${this.apiBaseUrl}movie/top_rated?page=${page}`);
+    console.log(url.toString());
+
+    const response = await axios.get<{ page: number; results: MovieDbMovie[] }>(url.toString(), {
+      headers: {
+        Authorization: `Bearer ${this.apiKey}`,
+        Accept: 'application/json',
+      },
+    });
+    if (response.data.results.length === 0) throw new NotFoundException(`No top rated movies found on page ${page}`);
+
+    const results: Prisma.MovieCreateInput[] = [];
+    response.data.results.forEach((movie) => {
+      if (onlyReleased && new Date(movie.release_date) > new Date()) {
+        return;
+      }
+      results.push(this.toPrismaMovie(movie));
+    });
+
     return results;
   }
 
