@@ -44,7 +44,6 @@ export class TheMovieDb {
   async getPopularMovies(page: number, onlyReleased = true): Promise<Prisma.MovieCreateInput[]> {
     if (page > this.maxPages) throw new NotFoundException('No more popular movies');
     const url = new URL(`${this.apiBaseUrl}movie/popular?page=${page}`);
-    console.log(url.toString());
 
     const response = await axios.get<{ page: number; results: MovieDbMovie[] }>(url.toString(), {
       headers: {
@@ -67,7 +66,6 @@ export class TheMovieDb {
   async getTopRatedMovies(page: number, onlyReleased = true): Promise<Prisma.MovieCreateInput[]> {
     if (page > this.maxPages) throw new NotFoundException('No more popular movies');
     const url = new URL(`${this.apiBaseUrl}movie/top_rated?page=${page}`);
-    console.log(url.toString());
 
     const response = await axios.get<{ page: number; results: MovieDbMovie[] }>(url.toString(), {
       headers: {
