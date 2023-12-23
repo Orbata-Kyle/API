@@ -8,8 +8,7 @@ import { PrismaService } from '../src/prisma/prisma.service';
 import * as pactum from 'pactum';
 import { AuthDto } from '../src/modules/auth/dto';
 import { AuthService } from '../src/modules/auth/auth.service';
-import { MatchupResponse } from 'src/types';
-import { async } from 'rxjs';
+import { MatchupDto } from 'src/modules/tournament/dto';
 
 describe('App e2e', () => {
   let app: INestApplication;
@@ -279,6 +278,17 @@ describe('App e2e', () => {
             Authorization: 'Bearer $S{userAt}',
           })
           .expectStatus(401);
+      });
+
+      it("Should thow if user doesn't exists", async () => {
+        await pactum
+          .spec()
+          .get('/user/{id}')
+          .withPathParams('id', '0')
+          .withHeaders({
+            Authorization: `Bearer ${adminAt}`,
+          })
+          .expectStatus(404);
       });
 
       it('Should return user if admin access token', async () => {
@@ -830,7 +840,7 @@ describe('App e2e', () => {
       .expectStatus(201);
   }
 
-  async function getMatchupResponse(): Promise<MatchupResponse> {
+  async function getMatchupResponse(): Promise<MatchupDto> {
     let body;
     await pactum
       .spec()

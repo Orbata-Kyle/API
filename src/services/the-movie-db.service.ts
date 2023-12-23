@@ -1,7 +1,8 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import axios from 'axios';
+import axios, { AxiosError } from 'axios';
 import type { Prisma } from '@prisma/client';
+import logger from '../utils/logging/winston-config';
 
 export interface MovieDbMovie {
   adult: boolean;
@@ -69,13 +70,20 @@ export class TheMovieDb {
 
   async getMovieById(id: number) {
     const url = new URL(`${this.apiBaseUrl}movie/${id}`);
-    const response = await axios.get(url.toString(), {
-      headers: {
-        Authorization: `Bearer ${this.apiKey}`,
-        Accept: 'application/json',
-      },
-    });
+    try {
+      const response = await axios.get(url.toString(), {
+        headers: {
+          Authorization: `Bearer ${this.apiKey}`,
+          Accept: 'application/json',
+        },
+      });
 
-    return response.data;
+      return response.data;
+    } catch (error) {
+      if (error instanceof AxiosError) {
+        logger.error(error.response?.data.status_code + ': ' + error.response?.data.status_message + ' ' + url.toString());
+        throw new NotFoundException(error.response?.data.status_message);
+      }
+    }
   }
 }

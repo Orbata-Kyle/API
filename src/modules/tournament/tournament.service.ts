@@ -2,8 +2,8 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { TournamentGraphService } from './graph/tournament-graph.service';
 import logger from '../../utils/logging/winston-config';
-import { Movie, TournamentRating, UserMovieRating } from '@prisma/client';
-import { MatchupResponse, MovieWithRank } from '../../types';
+import { Movie, TournamentRating } from '@prisma/client';
+import { MovieWithRankDto } from './dto/movie-with-rank.dto';
 
 @Injectable()
 export class TournamentService {
@@ -14,7 +14,7 @@ export class TournamentService {
     return this.tournamentGraphService.hasCycle(userId, liked);
   }
 
-  async getUsersTournamentRankings(userId: number, liked: boolean): Promise<MovieWithRank[]> {
+  async getUsersTournamentRankings(userId: number, liked: boolean): Promise<MovieWithRankDto[]> {
     const rankings = await this.tournamentGraphService.getUsersTournamentRankings(userId, liked);
 
     // Get movies from prisma
@@ -23,14 +23,14 @@ export class TournamentService {
     });
 
     // Order movies by rankings and add them to the objects
-    let movies: MovieWithRank[] = moviesWithoutRank
+    let movies: MovieWithRankDto[] = moviesWithoutRank
       .map((movie, _) => {
         return {
           ...movie,
           rank: rankings.get(movie.id)!.toString(),
         };
       })
-      .sort((a: MovieWithRank, b: MovieWithRank) => {
+      .sort((a: MovieWithRankDto, b: MovieWithRankDto) => {
         return rankings.get(a.id)! - rankings.get(b.id)!;
       });
 
@@ -67,7 +67,7 @@ export class TournamentService {
     return 'Successfully ranked movie';
   }
 
-  async getMatchup(userId: number): Promise<MatchupResponse> {
+  async getMatchup(userId: number) {
     let liked = Math.random() < 0.5;
     let movies = await this.findMatchupMovies(liked, userId);
     if (movies.length === 0) {

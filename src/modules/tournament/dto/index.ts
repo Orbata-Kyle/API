@@ -1,1 +1,2 @@
-export * from './tournament.dto';
+export * from './rank.dto';
+export * from './matchup.dto';

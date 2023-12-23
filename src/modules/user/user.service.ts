@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { SafeUser } from '../../types';
 import logger from '../../utils/logging/winston-config';
@@ -36,6 +36,7 @@ export class UserService {
         },
       },
     });
+    if (!user) throw new NotFoundException('User not found');
     delete user.hash;
     return user;
   }
