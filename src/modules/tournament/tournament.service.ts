@@ -18,26 +18,29 @@ export class TournamentService {
   async getUsersTournamentRankings(userId: number, liked: boolean): Promise<MovieWithRankDto[]> {
     const rankings = await this.tournamentGraphService.getUsersTournamentRankings(userId, liked);
 
-    // Get movies from prisma
-    const moviesWithoutRank = await this.prismaService.movie.findMany({
-      where: { id: { in: Array.from(rankings.keys()) } },
-    });
-
-    // Order movies by rankings and add them to the objects
-    let movies: MovieWithRankDto[] = moviesWithoutRank
-      .map((movie, _) => {
-        return {
-          ...movie,
-          rank: rankings.get(movie.id)!.toString(),
-        };
-      })
-      .sort((a: MovieWithRankDto, b: MovieWithRankDto) => {
-        return rankings.get(a.id)! - rankings.get(b.id)!;
+    let movies: MovieWithRankDto[] = [];
+    if (rankings && rankings.size > 0) {
+      // Get movies from prisma
+      const moviesWithoutRank = await this.prismaService.movie.findMany({
+        where: { id: { in: Array.from(rankings.keys()) } },
       });
+
+      // Order movies by rankings and add them to the objects
+      movies = moviesWithoutRank
+        .map((movie, _) => {
+          return {
+            ...movie,
+            rank: rankings.get(movie.id)!.toString(),
+          };
+        })
+        .sort((a: MovieWithRankDto, b: MovieWithRankDto) => {
+          return rankings.get(a.id)! - rankings.get(b.id)!;
+        });
+    }
 
     // Get all movies from users likes or dislikes with id not in rankings as well as the movies and concat to movies
     const unrankedMovies = await this.prismaService.userMovieRating.findMany({
-      where: { userId, interactionStatus: liked ? 'liked' : 'disliked', movieId: { notIn: Array.from(rankings.keys()) } },
+      where: { userId, interactionStatus: liked ? 'liked' : 'disliked', movieId: { notIn: Array.from(rankings?.keys() ?? []) } },
       include: { movie: true },
     });
     movies = movies.concat(
@@ -47,7 +50,9 @@ export class TournamentService {
     );
 
     logger.info(
-      `Returning ${movies.length} movie rankings for user ${userId}, with ${rankings.size} ranked movies and ${unrankedMovies.length} unranked movies`,
+      `Returning ${movies.length} movie rankings for user ${userId}, with ${rankings?.size ?? 0} ranked movies and ${
+        unrankedMovies.length
+      } unranked movies`,
     );
     return movies;
   }

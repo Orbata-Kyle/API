@@ -362,7 +362,18 @@ describe('App e2e', () => {
   });
 
   describe('Tournament', () => {
-    describe('matches before ranking', () => {
+    describe('Before ranking', () => {
+      it('Should return empty rankings', async () => {
+        await pactum
+          .spec()
+          .get('/tournament/rankings/disliked')
+          .withHeaders({
+            Authorization: 'Bearer $S{userAt}',
+          })
+          .expectStatus(200)
+          .expectJsonLike([]);
+      });
+
       it('Should get match with 2 fresh movies', async () => {
         await pactum
           .spec()
