@@ -1,8 +1,8 @@
-import { BadRequestException, Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Get, Param, Post, Put, UseGuards } from '@nestjs/common';
 import { GetUser } from '../../modules/auth/decorator';
 import { JwtGuard } from '../../modules/auth/guard';
 import { TournamentService } from './tournament.service';
-import { MatchupDto, RankDto } from './dto';
+import { ForceRankDto, MatchupDto, RankDto } from './dto';
 import { MovieService } from '../movie/movie.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { MovieWithRankDto } from './dto/movie-with-rank.dto';
@@ -92,5 +92,52 @@ export class TournamentController {
       throw new BadRequestException('Invalid interactionStatus');
     }
     return this.tournamentService.findCycle(userId, interactionStatus === 'liked');
+  }
+
+  @UseGuards(JwtGuard)
+  @Put('forceMoviePlacement/:interactionStatus')
+  @ApiBearerAuth('access-token')
+  @ApiOperation({ summary: 'Force a Movie Placement for a User, between two other already ranked movies' })
+  @ApiParam({ name: 'interactionStatus', enum: ['liked', 'disliked'], description: 'Interaction status to force movie placement' })
+  @ApiResponse({ status: 200, description: 'Movie placement forced successfully', type: String })
+  @ApiResponse({
+    status: 400,
+    description:
+      `**Invalid Interaction Status**: The provided interactionStatus is invalid.\n\n` +
+      `**Invalid Movie IDs**: AboveMovieId and belowMovieId cannot be the same and cannot be the same as movieId.\n\n` +
+      `**Ranking Requirements**: AboveMovieId and belowMovieId must have been ranked already and have the same interactionStatus as in request.\n\n` +
+      `**Cycle Prevention**: This ranking would create a cycle. This should not happen if aboveMovieId is ranked above belowMovieId, i.e., if dragged in tournament ranking.`,
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  async forceMoviePlacement(
+    @Body() dto: ForceRankDto,
+    @GetUser('id') userId: number,
+    @Param('interactionStatus') interactionStatus: string,
+  ): Promise<string> {
+    if (!['liked', 'disliked'].includes(interactionStatus)) {
+      throw new BadRequestException('Invalid interactionStatus');
+    }
+    // Make sure aboveMovieId and belowMovieId are not the same and that they are not the same as movieId
+    if (dto.aboveMovieId === dto.belowMovieId || dto.aboveMovieId === dto.movieId || dto.belowMovieId === dto.movieId) {
+      throw new BadRequestException('aboveMovieId and belowMovieId cannot be the same and cannot be the same as movieId');
+    }
+    // Make sure aboveMovieId and belowMovieId are same interactionStatus and there are individual rankings for both
+    const aboveMovie = await this.prismaService.tournamentRating.findFirst({
+      where: { userId, interactionStatus: interactionStatus, OR: [{ movie1Id: dto.aboveMovieId }, { movie2Id: dto.aboveMovieId }] },
+    });
+    const belowMovie = await this.prismaService.tournamentRating.findFirst({
+      where: { userId, interactionStatus: interactionStatus, OR: [{ movie1Id: dto.belowMovieId }, { movie2Id: dto.belowMovieId }] },
+    });
+    if (!aboveMovie || !belowMovie) {
+      throw new BadRequestException(`aboveMovieId and belowMovieId must have been ranked already and have interactionStatus status`);
+    }
+
+    return this.tournamentService.forceMoviePlacement(
+      userId,
+      dto.movieId,
+      dto.aboveMovieId,
+      dto.belowMovieId,
+      interactionStatus === 'liked',
+    );
   }
 }

@@ -9,6 +9,23 @@ export class TournamentGraph {
     this.adjacencyList = new Map();
   }
 
+  getAdjacencyListCopy(): Map<number, Set<number>> {
+    const adjacencyListCopy = new Map<number, Set<number>>();
+
+    this.adjacencyList.forEach((edges, movieId) => {
+      // Clone each Set of movieIds
+      adjacencyListCopy.set(movieId, new Set(edges));
+    });
+
+    return adjacencyListCopy;
+  }
+
+  restoreAdjacencyList(adjacencyList: Map<number, Set<number>>): void {
+    this.adjacencyList = adjacencyList;
+    this.ranks = new Map<number, number>();
+    this.newPreference = true;
+  }
+
   scanAndDeleteUnusedMovie(movieId: number) {
     // Search if movieIds adjecency list itself is empty and if it is an edge in any other movieIds adjecency lists, if both false then delete it
     // As this can only happen if this is a movie that was a looser from a matchup that was then moved to another graph (liked -> disliked or vice versa)
@@ -72,6 +89,48 @@ export class TournamentGraph {
       this.adjacencyList.get(winnerId)!.add(loserId);
       this.newPreference = true;
     }
+  }
+
+  forceMoviePlacement(movieId: number, aboveMovieId: number, belowMovieId: number): [number, number][] {
+    // Save all movieIds that won over moveiId and all movieIds that movieId won over
+    const movieIdsThatWonOverMovieId = new Set<number>();
+    const movieIdsThatMovieIdWonOver = new Set<number>();
+    this.adjacencyList.forEach((edges, winnerMovieId) => {
+      if (winnerMovieId === movieId) {
+        edges.forEach((loserMovieId) => {
+          movieIdsThatMovieIdWonOver.add(loserMovieId);
+        });
+      } else if (edges.has(movieId)) {
+        movieIdsThatWonOverMovieId.add(winnerMovieId);
+      }
+    });
+
+    // Remove all edges involving the movieId
+    this.adjacencyList.set(movieId, new Set());
+    this.adjacencyList.forEach((edges) => edges.delete(movieId));
+
+    // Add edge from the movie it is placed under
+    if (!this.adjacencyList.has(aboveMovieId)) {
+      this.adjacencyList.set(aboveMovieId, new Set());
+    }
+    this.adjacencyList.get(aboveMovieId)!.add(movieId);
+
+    // Add edge from the movie to the one it is placed above
+    this.adjacencyList.get(movieId)!.add(belowMovieId);
+
+    const newEdges: [number, number][] = [];
+    // Point all movieIdsThatWonOverMovieId to all movieIdsThatMovieIdWonOver to preserve this data
+    // all transitive connections that were severed to be restored without now the middleman movieId in between
+    movieIdsThatWonOverMovieId.forEach((winnerMovieId) => {
+      movieIdsThatMovieIdWonOver.forEach((loserMovieId) => {
+        this.addPreference(winnerMovieId, loserMovieId);
+        newEdges.push([winnerMovieId, loserMovieId]);
+      });
+    });
+
+    this.newPreference = true; // Invalidate cached ranks as the graph has changed
+
+    return newEdges;
   }
 
   getAvgRankMovieId(): number {
@@ -157,7 +216,7 @@ export class TournamentGraph {
     const scores = new Map<number, number>();
     this.adjacencyList.forEach((_, movieId) => scores.set(movieId, 1000)); // Initialize scores
 
-    const MAX_ITERATIONS = 100;
+    const MAX_ITERATIONS = this.adjacencyList.size * 100;
     let iterationCount = 0;
     let hasChanges: boolean;
 

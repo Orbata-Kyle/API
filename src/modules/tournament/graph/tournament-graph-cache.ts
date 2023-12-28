@@ -8,10 +8,38 @@ export class TournamentGraphCache {
   private dislikesCache: {
     [userId: number]: { timestamp: number; graph: TournamentGraph };
   } = {};
+  private likesCacheAdjacencyListCopy: {
+    [userId: number]: { adjacencyList: Map<number, Set<number>> };
+  } = {};
+  private dislikesCacheAdjacencyListCopy: {
+    [userId: number]: { adjacencyList: Map<number, Set<number>> };
+  } = {};
   private prismaService: PrismaService;
 
   constructor(prismaService: PrismaService) {
     this.prismaService = prismaService;
+  }
+
+  public saveGraphCopy(userId: number, liked: boolean): void {
+    if (liked) this.likesCacheAdjacencyListCopy[userId] = { adjacencyList: this.likesCache[userId].graph.getAdjacencyListCopy() };
+    else this.dislikesCacheAdjacencyListCopy[userId] = { adjacencyList: this.dislikesCache[userId].graph.getAdjacencyListCopy() };
+  }
+
+  public restoreGraphCopy(userId: number, liked: boolean): void {
+    if (liked) this.likesCache[userId].graph.restoreAdjacencyList(this.likesCacheAdjacencyListCopy[userId].adjacencyList);
+    else this.dislikesCache[userId].graph.restoreAdjacencyList(this.dislikesCacheAdjacencyListCopy[userId].adjacencyList);
+  }
+
+  public intervalidateGraphCache(userId: number, liked: boolean): void {
+    if (liked) {
+      if (this.likesCache[userId]) {
+        this.likesCache[userId] = undefined;
+      }
+    } else {
+      if (this.dislikesCache[userId]) {
+        this.dislikesCache[userId] = undefined;
+      }
+    }
   }
 
   public async getLikeGraphForUser(userId: number): Promise<TournamentGraph> {

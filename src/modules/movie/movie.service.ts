@@ -69,12 +69,7 @@ export class MovieService {
         data: { interactionStatus: action },
       });
       if (existingRating.interactionStatus !== 'unseen') {
-        await this.tournamentService.removeMovieRankingsAsInteractionStatusChanged(
-          userId,
-          parseInt(id),
-          existingRating.interactionStatus,
-          action,
-        );
+        await this.tournamentService.removeMovieRankings(userId, parseInt(id), existingRating.interactionStatus, action);
       }
       return updatedRating;
     }

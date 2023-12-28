@@ -1,9 +1,10 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, InternalServerErrorException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { TournamentGraphService } from './graph/tournament-graph.service';
 import logger from '../../utils/logging/winston-config';
 import { Movie, TournamentRating } from '@prisma/client';
 import { MovieWithRankDto } from './dto/movie-with-rank.dto';
+import e from 'express';
 
 @Injectable()
 export class TournamentService {
@@ -81,14 +82,43 @@ export class TournamentService {
     return { interactionStatus: liked ? 'liked' : 'disliked', movies };
   }
 
-  async removeMovieRankingsAsInteractionStatusChanged(
-    userId: number,
-    movieId: number,
-    prevInteractionStatus: string,
-    newInteractionStatus: string,
-  ) {
+  async forceMoviePlacement(userId: number, movieId: number, aboveMovieId: number, belowMovieId: number, liked: boolean): Promise<string> {
+    // Have to do graph first, to see if there will be cycles
+    this.tournamentGraphService.saveGraphCopy(userId, liked);
+    const newEdges = await this.tournamentGraphService.forceMoviePlacement(userId, movieId, aboveMovieId, belowMovieId, liked);
+    if (await this.tournamentGraphService.hasCycle(userId, liked)) {
+      this.tournamentGraphService.restoreGraphCopy(userId, liked);
+      throw new BadRequestException('This ranking would create a cylce');
+    }
+
+    // DB second, which can be tricky as impermanent change of graph made before permanent change to db
+    try {
+      await this.removeMovieRankings(userId, movieId, liked ? 'liked' : 'disliked', liked ? 'liked' : 'disliked', true);
+
+      await this.addTournamentRankToDatabase(userId, aboveMovieId, movieId, liked, true);
+      await this.addTournamentRankToDatabase(userId, movieId, belowMovieId, liked, true);
+
+      // Add new edges to graph that were created by the forceMoviePlacement method to avoid data loss
+      // all transitive connections that were severed to be restored without now the middleman movieId in between
+      for (const edge of newEdges) {
+        await this.addTournamentRankToDatabase(userId, edge[0], edge[1], liked);
+      }
+    } catch (e) {
+      this.tournamentGraphService.intervalidateGraphCache(userId, liked); // As unsure what happened but least we can do
+      if (e instanceof BadRequestException) {
+        logger.error(e);
+        throw new InternalServerErrorException('Failed to remove previous movie rankings from database');
+      } else {
+        throw e;
+      }
+    }
+
+    return 'Successfully forced movie placement';
+  }
+
+  async removeMovieRankings(userId: number, movieId: number, prevInteractionStatus: string, newInteractionStatus: string, force = false) {
     if (prevInteractionStatus !== 'liked' && prevInteractionStatus !== 'disliked') return;
-    if (newInteractionStatus === prevInteractionStatus) return;
+    if (newInteractionStatus === prevInteractionStatus && !force) return;
 
     // Get all matchups with this movie
     const matchups = await this.prismaService.tournamentRating.findMany({
@@ -112,9 +142,13 @@ export class TournamentService {
       where: { userId, interactionStatus: prevInteractionStatus, OR: [{ movie1Id: movieId }, { movie2Id: movieId }] },
     });
 
-    logger.info(
-      `Removed ${matchups.length} matchups for user ${userId} with movie ${movieId} as interactionStatus changed from ${prevInteractionStatus} to ${newInteractionStatus}`,
-    );
+    if (!force) {
+      logger.info(
+        `Removed ${matchups.length} matchups for user ${userId} with movie ${movieId} as interactionStatus changed from ${prevInteractionStatus} to ${newInteractionStatus}`,
+      );
+    } else {
+      logger.info(`Removed ${matchups.length} matchups for user ${userId} with movie ${movieId} with force`);
+    }
   }
 
   private async findMatchupMovies(liked: boolean, userId: number): Promise<Movie[]> {
@@ -183,8 +217,17 @@ export class TournamentService {
     return existingRating ?? undefined;
   }
 
-  private async addTournamentRankToDatabase(userId: number, winnerId: number, loserId: number, liked: boolean): Promise<void> {
+  private async addTournamentRankToDatabase(
+    userId: number,
+    winnerId: number,
+    loserId: number,
+    liked: boolean,
+    throwIfExisting = false,
+  ): Promise<void> {
     const existingPreference = await this.findExistingPreference(userId, winnerId, loserId);
+    if (existingPreference && throwIfExisting) {
+      throw new BadRequestException('This movie is already ranked.');
+    }
 
     // If existingPreference undefined -> new preference, if not equal to winnerId -> update, else nothing
     // This is what is done for the graph in the addPreference method in tournament-graph.ts
@@ -211,6 +254,8 @@ export class TournamentService {
         data: { winnerId },
       });
       logger.info(`Updated ${liked ? 'liked' : 'dislike'} preference for user ${userId}, for winner ${winnerId} and loser ${loserId}`);
+    } else {
+      logger.info(`No change to ${liked ? 'liked' : 'dislike'} preference for user ${userId}, for winner ${winnerId} and loser ${loserId}`);
     }
   }
 }

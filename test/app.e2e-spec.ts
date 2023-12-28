@@ -701,6 +701,218 @@ describe('App e2e', () => {
           .expectStatus(400);
       });
     });
+
+    describe('force movie rankings', () => {
+      it('should fail for invalid interaction status', async () => {
+        await pactum
+          .spec()
+          .put('/tournament/forceMoviePlacement/invalid-status')
+          .withHeaders({
+            Authorization: 'Bearer $S{userAt}',
+          })
+          .withBody({
+            movieId: 102,
+            aboveMovieId: 100,
+            belowMovieId: 100,
+          })
+          .expectStatus(400);
+      });
+
+      it('should fail for same aboveMovieId and belowMovieId', async () => {
+        await pactum
+          .spec()
+          .put('/tournament/forceMoviePlacement/disliked')
+          .withHeaders({
+            Authorization: 'Bearer $S{userAt}',
+          })
+          .withBody({
+            movieId: 102,
+            aboveMovieId: 100,
+            belowMovieId: 100,
+          })
+          .expectStatus(400);
+      });
+
+      it('should fail for same belowMovieId as movieId', async () => {
+        await pactum
+          .spec()
+          .put('/tournament/forceMoviePlacement/disliked')
+          .withHeaders({
+            Authorization: 'Bearer $S{userAt}',
+          })
+          .withBody({
+            movieId: 100,
+            aboveMovieId: 103,
+            belowMovieId: 100,
+          })
+          .expectStatus(400);
+      });
+
+      it('should fail for not ranked aboveMovieId', async () => {
+        await pactum
+          .spec()
+          .put('/tournament/forceMoviePlacement/disliked')
+          .withHeaders({
+            Authorization: 'Bearer $S{userAt}',
+          })
+          .withBody({
+            movieId: 102,
+            aboveMovieId: 110,
+            belowMovieId: 100,
+          })
+          .expectStatus(400);
+      });
+
+      it('should fail for incorrect interaction_status', async () => {
+        await pactum
+          .spec()
+          .put('/tournament/forceMoviePlacement/liked')
+          .withHeaders({
+            Authorization: 'Bearer $S{userAt}',
+          })
+          .withBody({
+            movieId: 102,
+            aboveMovieId: 106,
+            belowMovieId: 100,
+          })
+          .expectStatus(400);
+      });
+
+      it('force movie rankings successfully', async () => {
+        let responseBody;
+        await pactum
+          .spec()
+          .get('/tournament/rankings/disliked')
+          .withHeaders({
+            Authorization: 'Bearer $S{userAt}',
+          })
+          .expectStatus(200)
+          .toss()
+          .then((res) => {
+            responseBody = res.body;
+          });
+
+        const medianRank = Math.floor(responseBody.length / 2);
+        const aboveMovieId = responseBody.find((m) => m.rank === (medianRank - 1).toString()).id;
+        const belowMovieId = responseBody.find((m) => m.rank === medianRank.toString()).id;
+        const movie = responseBody.find((m) => m.rank === (responseBody.length - 2).toString());
+        const movieRank = movie.rank;
+        const movieId = movie.id;
+
+        await pactum
+          .spec()
+          .put('/tournament/forceMoviePlacement/disliked')
+          .withHeaders({
+            Authorization: 'Bearer $S{userAt}',
+          })
+          .withBody({
+            movieId,
+            aboveMovieId,
+            belowMovieId,
+          })
+          .expectStatus(200);
+
+        await pactum
+          .spec()
+          .get('/tournament/rankings/disliked')
+          .withHeaders({
+            Authorization: 'Bearer $S{userAt}',
+          })
+          .expectStatus(200)
+          .toss()
+          .then((res) => {
+            responseBody = res.body;
+          });
+
+        for (let i = 0; i < responseBody.length; i++) {
+          if (responseBody[i].id === aboveMovieId) {
+            if (responseBody[i + 1].id !== movieId) {
+              throw new Error(`Movie ${movieId} is not above movie ${aboveMovieId}`);
+            }
+            if (responseBody[i + 2].id !== belowMovieId) {
+              throw new Error(`Movie ${movieId} is not below movie ${belowMovieId}`);
+            }
+            if (Number(responseBody[i + 1].rank) >= Number(movieRank)) {
+              throw new Error(`Movie ${movieId} is not ranked higher than before`);
+            }
+            break;
+          }
+        }
+      });
+
+      it('force movie rankings fail because of cycle', async () => {
+        let responseBody;
+        await pactum
+          .spec()
+          .get('/tournament/rankings/disliked')
+          .withHeaders({
+            Authorization: 'Bearer $S{userAt}',
+          })
+          .expectStatus(200)
+          .toss()
+          .then((res) => {
+            responseBody = res.body;
+          });
+
+        const medianRank = Math.floor(responseBody.length / 2);
+        const belowMovie = responseBody.find((m) => m.rank === (medianRank - 1).toString());
+        const belowMovieId = belowMovie.id;
+        const belowMovieRank = belowMovie.rank;
+        const aboveMovie = responseBody.find((m) => m.rank === medianRank.toString());
+        const aboveMovieId = aboveMovie.id;
+        const aboveMovieRank = aboveMovie.rank;
+        const movie = responseBody.find((m) => m.rank === (responseBody.length - 2).toString());
+        const movieRank = movie.rank;
+        const movieId = movie.id;
+
+        await pactum
+          .spec()
+          .put('/tournament/forceMoviePlacement/disliked')
+          .withHeaders({
+            Authorization: 'Bearer $S{userAt}',
+          })
+          .withBody({
+            movieId,
+            aboveMovieId,
+            belowMovieId,
+          })
+          .expectStatus(400)
+          .expectJsonLike({
+            message: 'This ranking would create a cylce',
+          });
+
+        await pactum
+          .spec()
+          .get('/tournament/rankings/disliked')
+          .withHeaders({
+            Authorization: 'Bearer $S{userAt}',
+          })
+          .expectStatus(200)
+          .toss()
+          .then((res) => {
+            responseBody = res.body;
+          });
+
+        for (let i = 0; i < responseBody.length; i++) {
+          if (responseBody[i].id === aboveMovieId && responseBody[i].rank !== aboveMovieRank) {
+            throw new Error(`Movie ${aboveMovieId} has wrongfully changed rank`);
+          } else if (responseBody[i].id === belowMovieId && responseBody[i].rank !== belowMovieRank) {
+            throw new Error(`Movie ${belowMovieId} has wrongfully changed rank`);
+          } else if (responseBody[i].id === movieId && responseBody[i].rank !== movieRank) {
+            throw new Error(`Movie ${movieId} has wrongfully changed rank`);
+          }
+        }
+
+        await pactum
+          .spec()
+          .get('/tournament/cycle/disliked')
+          .withHeaders({
+            Authorization: 'Bearer $S{userAt}',
+          })
+          .expectStatus(200)
+          .expectBodyContains('false');
+      });
+    });
   });
 
   // ------------------ Helper functions ------------------

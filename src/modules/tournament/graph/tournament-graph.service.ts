@@ -34,6 +34,21 @@ export class TournamentGraphService {
     (liked ? userLikedGraph : userDisikedGraph).addPreference(winnerId, movie1Id === winnerId ? movie2Id : movie1Id);
   }
 
+  // Wrapper for saving graph copy
+  async saveGraphCopy(userId: number, liked: boolean): Promise<void> {
+    this.cache.saveGraphCopy(userId, liked);
+  }
+
+  // Wrapper for restoring graph copy
+  async restoreGraphCopy(userId: number, liked: boolean): Promise<void> {
+    this.cache.restoreGraphCopy(userId, liked);
+  }
+
+  // Wrapper for intervalidating graph cache
+  async intervalidateGraphCache(userId: number, liked: boolean): Promise<void> {
+    this.cache.intervalidateGraphCache(userId, liked);
+  }
+
   // Wrapper for finding and removing preferences from the graph
   async findAndRemovePreferenceCombination(userId: number, movie1Id: number, movie2Id: number, liked: boolean): Promise<boolean> {
     const userGraph = liked ? await this.cache.getLikeGraphForUser(userId) : await this.cache.getDislikedGraphForUser(userId);
@@ -62,5 +77,17 @@ export class TournamentGraphService {
   async getMatchup(userId: number, liked: boolean): Promise<[number, number]> {
     const userGraph = liked ? await this.cache.getLikeGraphForUser(userId) : await this.cache.getDislikedGraphForUser(userId);
     return userGraph.getMatchup();
+  }
+
+  // Wrapper for forcing a movie placement
+  async forceMoviePlacement(
+    userId: number,
+    movieId: number,
+    aboveMovieId: number,
+    belowMovieId: number,
+    liked: boolean,
+  ): Promise<[number, number][]> {
+    const userGraph = liked ? await this.cache.getLikeGraphForUser(userId) : await this.cache.getDislikedGraphForUser(userId);
+    return userGraph.forceMoviePlacement(movieId, aboveMovieId, belowMovieId);
   }
 }
