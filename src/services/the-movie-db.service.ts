@@ -1,9 +1,10 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import axios, { AxiosError } from 'axios';
 import type { Prisma } from '@prisma/client';
 import logger from '../utils/logging/winston-config';
-export interface MovieDbMovie {
+import { PrismaService } from '../prisma/prisma.service';
+interface MovieDbMovie {
   adult: boolean;
   backdrop_path: string;
   genre_ids: number[];
@@ -20,17 +21,35 @@ export interface MovieDbMovie {
   vote_count: number;
 }
 
+interface MovieDbGenre {
+  id: number;
+  name: string;
+}
+
+export interface MovieCreateInputAndRelations {
+  movieCreateInput: Prisma.MovieCreateInput;
+  movieGenreCreateInputs: { movieId: number; genreId: number }[];
+}
+
 @Injectable()
-export class TheMovieDb {
+export class TheMovieDb implements OnModuleInit {
   private apiKey: string;
   private apiBaseUrl = `https://api.themoviedb.org/3/`;
   private maxPages = 500;
 
-  constructor(private config: ConfigService) {
+  constructor(private config: ConfigService, private prisma: PrismaService) {
     this.apiKey = this.config.get<string>('THE_MOVIE_DB_API_KEY');
   }
 
-  toPrismaMovie(movie: MovieDbMovie): Prisma.MovieCreateInput {
+  async onModuleInit(): Promise<void> {
+    try {
+      await this.ensureGenreInDb();
+    } catch (error) {
+      logger.error('Error initializing genres:', error);
+    }
+  }
+
+  private toPrismaMovieCreateInput(movie: MovieDbMovie): Prisma.MovieCreateInput {
     return {
       id: movie.id,
       title: movie.original_title,
@@ -38,7 +57,32 @@ export class TheMovieDb {
       posterUrl: movie.poster_path ? `https://image.tmdb.org/t/p/original${movie.poster_path}` : undefined,
       releaseDate: new Date(movie.release_date),
       synopsis: movie.overview,
+      voteAverage: movie.vote_average,
+      voteCount: movie.vote_count,
+      popularity: movie.popularity,
+      adult: movie.adult,
     };
+  }
+
+  private toPrismaGenreCreateInput(genre: MovieDbGenre): Prisma.GenreCreateInput {
+    return {
+      id: genre.id,
+      name: genre.name,
+    };
+  }
+
+  async ensureGenreInDb(): Promise<void> {
+    const newGenres = await this.getGenres();
+
+    newGenres.forEach(async (genre) => {
+      await this.prisma.genre.upsert({
+        where: {
+          id: genre.id,
+        },
+        create: genre,
+        update: genre,
+      });
+    });
   }
 
   async getPopularMovies(page: number, onlyReleased = true): Promise<Prisma.MovieCreateInput[]> {
@@ -58,7 +102,7 @@ export class TheMovieDb {
       if (onlyReleased && new Date(movie.release_date) > new Date()) {
         return;
       }
-      results.push(this.toPrismaMovie(movie));
+      results.push(this.toPrismaMovieCreateInput(movie));
     });
     return results;
   }
@@ -80,7 +124,7 @@ export class TheMovieDb {
       if (onlyReleased && new Date(movie.release_date) > new Date()) {
         return;
       }
-      results.push(this.toPrismaMovie(movie));
+      results.push(this.toPrismaMovieCreateInput(movie));
     });
 
     return results;
@@ -105,13 +149,13 @@ export class TheMovieDb {
       if (movie.popularity < 5) {
         return;
       }
-      results.push(this.toPrismaMovie(movie));
+      results.push(this.toPrismaMovieCreateInput(movie));
     });
 
     return results;
   }
 
-  async getMovieById(id: number) {
+  async getMovieById(id: number): Promise<MovieCreateInputAndRelations> {
     const url = new URL(`${this.apiBaseUrl}movie/${id}`);
     try {
       const response = await axios.get(url.toString(), {
@@ -121,12 +165,36 @@ export class TheMovieDb {
         },
       });
 
-      return response.data;
+      return {
+        movieCreateInput: this.toPrismaMovieCreateInput(response.data),
+        movieGenreCreateInputs: response.data.genres.map((genre: MovieDbGenre) => {
+          return { movieId: response.data.id, genreId: genre.id };
+        }),
+      };
     } catch (error) {
       if (error instanceof AxiosError) {
         logger.error(error.response?.data.status_code + ': ' + error.response?.data.status_message + ' ' + url.toString());
         throw new NotFoundException(error.response?.data.status_message);
       }
     }
+  }
+
+  async getGenres(): Promise<Prisma.GenreCreateInput[]> {
+    const url = new URL(`${this.apiBaseUrl}genre/movie/list`);
+
+    const response = await axios.get(url.toString(), {
+      headers: {
+        Authorization: `Bearer ${this.apiKey}`,
+        Accept: 'application/json',
+      },
+    });
+
+    const genres = response.data.genres;
+
+    const results: Prisma.GenreCreateInput[] = [];
+    genres.forEach((genre) => {
+      results.push(this.toPrismaGenreCreateInput(genre));
+    });
+    return results;
   }
 }

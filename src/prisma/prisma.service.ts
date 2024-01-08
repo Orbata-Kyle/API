@@ -18,16 +18,6 @@ export class PrismaService extends PrismaClient implements OnModuleInit {
     });
   }
 
-  async saveMoviesToDb(movies: Prisma.MovieCreateManyInput[], skipDuplicates = true) {
-    const savedMovies = await this.movie.createMany({
-      data: movies,
-      skipDuplicates,
-    });
-
-    logger.info(`Saved ${savedMovies.count} movies to DB`);
-    return savedMovies;
-  }
-
   async cleanDb() {
     if (this.config.get('ENV') !== 'test') throw new Error('Cannot clean whole db in non-test environment');
     else {

@@ -1,54 +1,27 @@
-import { Inject, Injectable } from '@nestjs/common';
-import type { Prisma, UserMovieRating } from '@prisma/client';
+import { Inject, Injectable, forwardRef } from '@nestjs/common';
+import type { Movie, Prisma, UserMovieRating } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
-import { TheMovieDb } from '../../services/the-movie-db.service';
 import logger from '../../utils/logging/winston-config';
 import { TournamentService } from '../tournament/tournament.service';
+import { MovieCacheService } from '../../movie-cache/db-movie-cache.service';
 
 @Injectable()
 export class MovieService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly theMovieDb: TheMovieDb,
-    @Inject(TournamentService) private readonly tournamentService: TournamentService,
+    private readonly movieCache: MovieCacheService,
+    private readonly tournamentService: TournamentService,
   ) {}
 
-  async ensureMovieInDb(id: number): Promise<void> {
-    const movieFromDb = await this.prisma.movie.findUnique({
-      where: { id },
-    });
-
-    if (movieFromDb) {
-      return;
-    }
-
-    const movieFromApi = await this.theMovieDb.getMovieById(id);
-    const movieToSave = this.theMovieDb.toPrismaMovie(movieFromApi);
-
-    await this.prisma.movie.create({
-      data: movieToSave,
-    });
-    logger.info(`Saved 1 movie to DB`);
-
-    return;
-  }
-
-  async searchForMovieByTitle(title: string) {
+  async searchForMovieByTitle(title: string): Promise<Movie[]> {
     logger.info('Searching for movie by title: ' + title);
-    const moviesToSave = await this.theMovieDb.searchForMovieByTitle(title);
+    const movies = await this.movieCache.searchForMovieByTitle(title);
 
-    this.prisma.saveMoviesToDb(moviesToSave);
-
-    return moviesToSave;
+    return movies;
   }
 
-  async getMovieById(id: string) {
-    const movieFromDb = await this.prisma.movie.findUnique({
-      where: { id: parseInt(id) },
-    });
-
-    logger.info(`Found movie with id ${id} in DB`);
-    return movieFromDb;
+  async getMovieById(id: string): Promise<Movie> {
+    return await this.movieCache.getMovieById(parseInt(id));
   }
 
   async rateMovieById(id: string, action: string, userId: number): Promise<UserMovieRating> {

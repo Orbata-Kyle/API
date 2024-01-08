@@ -15,11 +15,33 @@ model Movie {
   backdropUrl     String?            @db.Text
   synopsis        String?            @db.Text
   releaseDate     DateTime?          @db.Date
+  adult           Boolean?           @default(false)
+  popularity      Float?
+  voteCount       Int?
+  voteAverage     Float?
+  genres          MovieGenre[]
   UserMovieRating UserMovieRating[]
   UserMoviePairs1 TournamentRating[] @relation("movie1")
   UserMoviePairs2 TournamentRating[] @relation("movie2")
 
   @@index([title])
+}
+
+model Genre {
+  id    Int          @id
+  name  String
+  Movie MovieGenre[]
+}
+
+model MovieGenre {
+  id      Int   @id @default(autoincrement())
+  movieId Int
+  genreId Int
+  movie   Movie @relation(fields: [movieId], references: [id], onDelete: Cascade)
+  genre   Genre @relation(fields: [genreId], references: [id], onDelete: Cascade)
+
+  @@index([genreId])
+  @@index([movieId])
 }
 
 model User {

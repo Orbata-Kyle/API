@@ -89,12 +89,7 @@ export class TournamentService {
 
   async forceMoviePlacement(userId: number, movieId: number, aboveMovieId: number, belowMovieId: number, liked: boolean): Promise<string> {
     // Have to do graph first, to see if there will be cycles
-    this.tournamentGraphService.saveGraphCopy(userId, liked);
     const newEdges = await this.tournamentGraphService.forceMoviePlacement(userId, movieId, aboveMovieId, belowMovieId, liked);
-    if (await this.tournamentGraphService.hasCycle(userId, liked)) {
-      this.tournamentGraphService.restoreGraphCopy(userId, liked);
-      throw new BadRequestException('This ranking would create a cylce');
-    }
 
     // DB second, which can be tricky as impermanent change of graph made before permanent change to db
     try {

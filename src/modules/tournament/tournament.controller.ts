@@ -3,7 +3,6 @@ import { GetUser } from '../../modules/auth/decorator';
 import { JwtGuard } from '../../modules/auth/guard';
 import { TournamentService } from './tournament.service';
 import { ForceRankDto, MatchupDto, RankDto } from './dto';
-import { MovieService } from '../movie/movie.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { MovieWithRankDto } from './dto/movie-with-rank.dto';
 import { ApiOperation, ApiResponse, ApiTags, ApiBearerAuth, ApiBody, ApiParam } from '@nestjs/swagger';
@@ -11,11 +10,7 @@ import { ApiOperation, ApiResponse, ApiTags, ApiBearerAuth, ApiBody, ApiParam } 
 @ApiTags('Tournament')
 @Controller('tournament')
 export class TournamentController {
-  constructor(
-    private readonly tournamentService: TournamentService,
-    private readonly movieService: MovieService,
-    private readonly prismaService: PrismaService,
-  ) {}
+  constructor(private readonly tournamentService: TournamentService, private readonly prismaService: PrismaService) {}
 
   @UseGuards(JwtGuard)
   @Get('rankings/:interactionStatus')

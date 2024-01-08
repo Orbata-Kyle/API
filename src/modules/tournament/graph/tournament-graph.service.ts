@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service'; // Assuming you have a PrismaService
 import { TournamentGraphCache } from './tournament-graph-cache';
 
@@ -88,6 +88,14 @@ export class TournamentGraphService {
     liked: boolean,
   ): Promise<[number, number][]> {
     const userGraph = liked ? await this.cache.getLikeGraphForUser(userId) : await this.cache.getDislikedGraphForUser(userId);
-    return userGraph.forceMoviePlacement(movieId, aboveMovieId, belowMovieId);
+
+    // As this is a destructive operation, we need to save a copy of the graph in case it causes a cycle
+    this.saveGraphCopy(userId, liked);
+    const newEdges = userGraph.forceMoviePlacement(movieId, aboveMovieId, belowMovieId);
+    if (await this.hasCycle(userId, liked)) {
+      this.restoreGraphCopy(userId, liked);
+      throw new BadRequestException('This ranking would create a cylce');
+    }
+    return newEdges;
   }
 }
