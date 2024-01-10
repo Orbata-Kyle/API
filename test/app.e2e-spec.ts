@@ -1,14 +1,14 @@
-import { after, describe } from 'node:test';
+import { describe } from 'node:test';
 import { Test } from '@nestjs/testing';
 import { AppModule } from '../src/app.module';
 import { HttpAdapterHost } from '@nestjs/core';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { AllExceptionsFilter } from '../src/utils/logging/all-exceptions.filter';
-import { PrismaService } from '../src/prisma/prisma.service';
+import { PrismaService } from '../src/utility-modules/prisma/prisma.service';
 import * as pactum from 'pactum';
-import { AuthDto } from '../src/modules/auth/dto';
-import { AuthService } from '../src/modules/auth/auth.service';
-import { MatchupDto } from 'src/modules/tournament/dto';
+import { AuthDto } from '../src/api-modules/auth/dto/request';
+import { AuthService } from '../src/api-modules/auth/auth.service';
+import { MatchupDto } from 'src/api-modules/tournament/dto/response';
 
 describe('App e2e', () => {
   let app: INestApplication;
@@ -191,12 +191,44 @@ describe('App e2e', () => {
     });
 
     describe('getMovieById', () => {
-      it('Should get a movie by ID', async () => {
-        await pactum.spec().get('/movie/{id}').withPathParams('id', '100').expectStatus(200).expectJsonLike({
-          id: 100,
-        });
+      it('Should get a movie by ID with all details', async () => {
+        let responseBody;
+        await pactum
+          .spec()
+          .get('/movie/{id}')
+          .withPathParams('id', '100')
+          .expectStatus(200)
+          .expectJsonLike({
+            id: 100,
+          })
+          .toss()
+          .then((res) => {
+            responseBody = res.body;
+          });
 
         await assertMovieExistsInDb(100);
+
+        if (!responseBody.genres.length || responseBody.genres.lenngth === 0) {
+          throw new Error('Movie genres not found');
+        }
+        if (!responseBody.spokenLanguages.length || responseBody.spokenLanguages.lenngth === 0) {
+          throw new Error('Movie spokenLanguages not found');
+        }
+        if (!responseBody.keywords.length || responseBody.keywords.lenngth === 0) {
+          throw new Error('Movie keywords not found');
+        }
+        if (!responseBody.cast.length || responseBody.cast.lenngth === 0) {
+          throw new Error('Movie cast not found');
+        }
+        if (!responseBody.crew.length || responseBody.crew.lenngth === 0) {
+          throw new Error('Movie crew not found');
+        }
+        if (!responseBody.videos) {
+          throw new Error('Movie videos not found');
+        }
+        if (!responseBody.details) {
+          throw new Error('Movie details not found');
+        }
       });
     });
 
@@ -375,6 +407,7 @@ describe('App e2e', () => {
       });
 
       it('Should get match with 2 fresh movies', async () => {
+        let responseBody;
         await pactum
           .spec()
           .get('/tournament/matchup')
@@ -383,16 +416,17 @@ describe('App e2e', () => {
           })
           .expectStatus(200)
           .expectJsonLike({
-            movies: [
-              {
-                id: 102,
-              },
-              {
-                id: 100,
-              },
-            ],
             interactionStatus: 'liked',
+          })
+          .toss()
+          .then((res) => {
+            responseBody = res.body;
           });
+
+        await assertTournamentRatingDoesntExistsInDb(responseBody.movies[0].id, responseBody.movies[1].id, 'liked');
+        await assertTournamentRatingDoesntExistsInDb(responseBody.movies[1].id, responseBody.movies[0].id, 'liked');
+        await assertTournamentRatingDoesntExistsInDb(responseBody.movies[0].id, responseBody.movies[1].id, 'disliked');
+        await assertTournamentRatingDoesntExistsInDb(responseBody.movies[1].id, responseBody.movies[0].id, 'disliked');
       });
     });
 

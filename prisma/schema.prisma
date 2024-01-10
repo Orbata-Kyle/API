@@ -9,22 +9,97 @@ datasource db {
 }
 
 model Movie {
-  id              Int                @id
+  id              Int                   @id
   title           String
-  posterUrl       String?            @db.Text
-  backdropUrl     String?            @db.Text
-  synopsis        String?            @db.Text
-  releaseDate     DateTime?          @db.Date
-  adult           Boolean?           @default(false)
+  posterUrl       String?               @db.Text
+  backdropUrl     String?               @db.Text
+  synopsis        String?               @db.Text
+  releaseDate     DateTime?             @db.Date
+  adult           Boolean?              @default(false)
   popularity      Float?
   voteCount       Int?
   voteAverage     Float?
   genres          MovieGenre[]
   UserMovieRating UserMovieRating[]
-  UserMoviePairs1 TournamentRating[] @relation("movie1")
-  UserMoviePairs2 TournamentRating[] @relation("movie2")
+  UserMoviePairs1 TournamentRating[]    @relation("movie1")
+  UserMoviePairs2 TournamentRating[]    @relation("movie2")
+  details         MovieDetails[]
+  spokenLanguages MovieSpokenLanguage[]
+  cast            Cast[]
+  crew            Crew[]
+  keywords        MovieKeyword[]
+  videos          Video[]
+  updatedAt       DateTime              @updatedAt
+  createdAt       DateTime              @default(now())
 
   @@index([title])
+}
+
+model Video {
+  id        Int       @id @default(autoincrement())
+  name      String?
+  site      String?
+  size      Int?
+  type      String?
+  official  Boolean?
+  published DateTime?
+  iso31661  String?
+  iso6391   String?
+  movieId   Int
+  movie     Movie     @relation(fields: [movieId], references: [id], onDelete: Cascade)
+
+  @@index([movieId])
+}
+
+model MovieKeyword {
+  id        Int     @id @default(autoincrement())
+  movieId   Int
+  keywordId Int
+  movie     Movie   @relation(fields: [movieId], references: [id], onDelete: Cascade)
+  keyword   Keyword @relation(fields: [keywordId], references: [id], onDelete: Cascade)
+
+  @@unique([movieId, keywordId])
+  @@index([movieId])
+  @@index([keywordId])
+}
+
+model Keyword {
+  id           Int            @id
+  name         String
+  movieKeyword MovieKeyword[]
+}
+
+model Cast {
+  id                 Int      @id
+  name               String
+  originalName       String?
+  character          String?
+  profileUrl         String?
+  popularity         Float?
+  knownForDepartment String?
+  gender             Int?
+  order              Int?
+  adult              Boolean?
+  movieId            Int
+  movie              Movie    @relation(fields: [movieId], references: [id], onDelete: Cascade)
+
+  @@index([movieId])
+}
+
+model Crew {
+  id                 Int      @id
+  name               String
+  originalName       String?
+  department         String?
+  job                String?
+  profileUrl         String?
+  adult              Boolean?
+  knownForDepartment String?
+  popularity         Float?
+  movieId            Int
+  movie              Movie    @relation(fields: [movieId], references: [id], onDelete: Cascade)
+
+  @@index([movieId])
 }
 
 model Genre {
@@ -40,8 +115,41 @@ model MovieGenre {
   movie   Movie @relation(fields: [movieId], references: [id], onDelete: Cascade)
   genre   Genre @relation(fields: [genreId], references: [id], onDelete: Cascade)
 
+  @@unique([movieId, genreId])
   @@index([genreId])
   @@index([movieId])
+}
+
+model MovieDetails {
+  id      Int     @id @default(autoincrement())
+  budget  Int?
+  revenue Int?
+  runtime Int?
+  status  String?
+  tagline String?
+  movieId Int
+  movie   Movie   @relation(fields: [movieId], references: [id], onDelete: Cascade)
+
+  @@unique([movieId])
+}
+
+model MovieSpokenLanguage {
+  id                Int      @id @default(autoincrement())
+  movieId           Int
+  spokenLanguageIso String
+  movie             Movie    @relation(fields: [movieId], references: [id], onDelete: Cascade)
+  spokenLanguage    Language @relation(fields: [spokenLanguageIso], references: [iso6391], onDelete: Cascade)
+
+  @@unique([movieId, spokenLanguageIso])
+  @@index([movieId])
+  @@index([spokenLanguageIso])
+}
+
+model Language {
+  iso6391             String                @id
+  englishName         String?
+  name                String?
+  movieSpokenLanguage MovieSpokenLanguage[]
 }
 
 model User {
@@ -53,6 +161,8 @@ model User {
   admin           Boolean            @default(false)
   UserMovieRating UserMovieRating[]
   UserMoviePairs  TournamentRating[]
+  updatedAt       DateTime           @updatedAt
+  createdAt       DateTime           @default(now())
 }
 
 model UserMovieRating {
@@ -63,6 +173,7 @@ model UserMovieRating {
   movie             Movie   @relation(fields: [movieId], references: [id], onDelete: Cascade)
   user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@unique([userId, movieId])
   @@index([movieId])
   @@index([userId])
 }

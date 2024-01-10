@@ -1,9 +1,9 @@
-import { Injectable, NotFoundException, OnModuleInit } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import axios, { AxiosError } from 'axios';
-import type { Prisma } from '@prisma/client';
+import axios from 'axios';
+import type { Cast, Crew, Keyword, MovieDetails, MovieGenre, MovieSpokenLanguage, Prisma, Video } from '@prisma/client';
 import logger from '../utils/logging/winston-config';
-import { PrismaService } from '../prisma/prisma.service';
+import { PrismaService } from '../utility-modules/prisma/prisma.service';
 interface MovieDbMovie {
   adult: boolean;
   backdrop_path: string;
@@ -21,32 +21,107 @@ interface MovieDbMovie {
   vote_count: number;
 }
 
-interface MovieDbGenre {
+type MovieDbMovieDetailsResponse = {
+  id: number;
+  title: string;
+  original_title: string;
+  poster_path?: string;
+  backdrop_path?: string;
+  overview: string;
+  release_date: string;
+  adult: boolean;
+  popularity: number;
+  vote_count: number;
+  vote_average: number;
+  genres: MovieDbGenre[];
+  spoken_languages: MovieDbLanguage[];
+  budget: number;
+  revenue: number;
+  runtime: number;
+  status: string;
+  tagline: string;
+  keywords: { keywords: MovieDbKeyword[] };
+  videos: { results: MovieDbVideo[] };
+  credits: { cast: MovieDbCastMember[]; crew: MovieDbCrewMember[] };
+};
+
+type MovieDbGenre = {
   id: number;
   name: string;
+};
+
+type MovieDbKeyword = {
+  id: number;
+  name: string;
+};
+
+type MovieDbVideo = {
+  id: string;
+  iso_639_1: string;
+  iso_3166_1: string;
+  key: string;
+  name: string;
+  site: string;
+  size: number;
+  type: string;
+  official: boolean;
+  published_at: string;
+};
+
+type MovieDbCastMember = {
+  cast_id: number;
+  character: string;
+  credit_id: string;
+  gender: number | null;
+  id: number;
+  name: string;
+  order: number;
+  profile_path: string | null;
+  original_name: string;
+  popularity: number;
+  known_for_department: string;
+  adult: boolean;
+};
+
+type MovieDbCrewMember = {
+  credit_id: string;
+  department: string;
+  gender: number | null;
+  id: number;
+  job: string;
+  name: string;
+  profile_path: string | null;
+  original_name: string;
+  adult: boolean;
+  popularity: number;
+  known_for_department: string;
+};
+
+interface MovieDbLanguage {
+  iso_639_1: string;
+  name: string;
+  english_name: string;
 }
 
 export interface MovieCreateInputAndRelations {
   movieCreateInput: Prisma.MovieCreateInput;
-  movieGenreCreateInputs: { movieId: number; genreId: number }[];
+  movieGenreCreateInputs: Omit<MovieGenre, 'id'>[];
+  movieSpokenLanguagesCreateInputs: Omit<MovieSpokenLanguage, 'id'>[];
+  keywordsCreateInputs: Keyword[];
+  castCreateInputs: Cast[];
+  crewCreateInputs: Crew[];
+  videosCreateInputs: Omit<Video, 'id'>[];
+  detailsCreateInput: Omit<MovieDetails, 'id'>;
 }
 
 @Injectable()
-export class TheMovieDb implements OnModuleInit {
+export class TheMovieDb {
   private apiKey: string;
   private apiBaseUrl = `https://api.themoviedb.org/3/`;
   private maxPages = 500;
 
-  constructor(private config: ConfigService, private prisma: PrismaService) {
+  constructor(private readonly config: ConfigService, private readonly prisma: PrismaService) {
     this.apiKey = this.config.get<string>('THE_MOVIE_DB_API_KEY');
-  }
-
-  async onModuleInit(): Promise<void> {
-    try {
-      await this.ensureGenreInDb();
-    } catch (error) {
-      logger.error('Error initializing genres:', error);
-    }
   }
 
   private toPrismaMovieCreateInput(movie: MovieDbMovie): Prisma.MovieCreateInput {
@@ -64,6 +139,82 @@ export class TheMovieDb implements OnModuleInit {
     };
   }
 
+  private toPrismaMovieCreateInputAndRelations(movie: MovieDbMovieDetailsResponse): MovieCreateInputAndRelations {
+    return {
+      movieCreateInput: {
+        id: movie.id,
+        title: movie.original_title,
+        backdropUrl: movie.backdrop_path ? `https://image.tmdb.org/t/p/original${movie.backdrop_path}` : undefined,
+        posterUrl: movie.poster_path ? `https://image.tmdb.org/t/p/original${movie.poster_path}` : undefined,
+        releaseDate: new Date(movie.release_date),
+        synopsis: movie.overview,
+        voteAverage: movie.vote_average,
+        voteCount: movie.vote_count,
+        popularity: movie.popularity,
+        adult: movie.adult,
+      },
+      movieGenreCreateInputs: movie.genres.map((genre) => {
+        return { movieId: movie.id, genreId: genre.id };
+      }),
+      movieSpokenLanguagesCreateInputs: movie.spoken_languages.map((spokenLanguage) => {
+        return { movieId: movie.id, spokenLanguageIso: spokenLanguage.iso_639_1 };
+      }),
+      keywordsCreateInputs: movie.keywords.keywords.map((keyword) => {
+        return { id: keyword.id, name: keyword.name };
+      }),
+      castCreateInputs: movie.credits.cast.map((castMember) => {
+        return {
+          id: castMember.id,
+          name: castMember.name,
+          character: castMember.character,
+          profileUrl: castMember.profile_path ? `https://image.tmdb.org/t/p/original${castMember.profile_path}` : undefined,
+          order: castMember.order,
+          movieId: movie.id,
+          originalName: castMember.original_name,
+          popularity: castMember.popularity,
+          knownForDepartment: castMember.known_for_department,
+          adult: castMember.adult,
+          gender: castMember.gender,
+        };
+      }),
+      crewCreateInputs: movie.credits.crew.map((crewMember) => {
+        return {
+          id: crewMember.id,
+          name: crewMember.name,
+          job: crewMember.job,
+          profileUrl: crewMember.profile_path ? `https://image.tmdb.org/t/p/original${crewMember.profile_path}` : undefined,
+          movieId: movie.id,
+          originalName: crewMember.original_name,
+          popularity: crewMember.popularity,
+          knownForDepartment: crewMember.known_for_department,
+          adult: crewMember.adult,
+          department: crewMember.department,
+        };
+      }),
+      videosCreateInputs: movie.videos.results.map((video) => {
+        return {
+          iso6391: video.iso_639_1,
+          iso31661: video.iso_3166_1,
+          name: video.name,
+          site: video.site,
+          size: video.size,
+          type: video.type,
+          movieId: movie.id,
+          official: video.official,
+          published: new Date(video.published_at),
+        };
+      }),
+      detailsCreateInput: {
+        budget: movie.budget,
+        revenue: movie.revenue,
+        runtime: movie.runtime,
+        status: movie.status,
+        tagline: movie.tagline,
+        movieId: movie.id,
+      },
+    };
+  }
+
   private toPrismaGenreCreateInput(genre: MovieDbGenre): Prisma.GenreCreateInput {
     return {
       id: genre.id,
@@ -71,18 +222,12 @@ export class TheMovieDb implements OnModuleInit {
     };
   }
 
-  async ensureGenreInDb(): Promise<void> {
-    const newGenres = await this.getGenres();
-
-    newGenres.forEach(async (genre) => {
-      await this.prisma.genre.upsert({
-        where: {
-          id: genre.id,
-        },
-        create: genre,
-        update: genre,
-      });
-    });
+  private toPrismaLangugageCreateInput(spokenLangugage: MovieDbLanguage): Prisma.LanguageCreateInput {
+    return {
+      iso6391: spokenLangugage.iso_639_1,
+      englishName: spokenLangugage.english_name,
+      name: spokenLangugage.name,
+    };
   }
 
   async getPopularMovies(page: number, onlyReleased = true): Promise<Prisma.MovieCreateInput[]> {
@@ -156,7 +301,7 @@ export class TheMovieDb implements OnModuleInit {
   }
 
   async getMovieById(id: number): Promise<MovieCreateInputAndRelations> {
-    const url = new URL(`${this.apiBaseUrl}movie/${id}`);
+    const url = new URL(`${this.apiBaseUrl}movie/${id}?append_to_response=keywords%2Ccredits%2Cvideos`);
     try {
       const response = await axios.get(url.toString(), {
         headers: {
@@ -165,17 +310,9 @@ export class TheMovieDb implements OnModuleInit {
         },
       });
 
-      return {
-        movieCreateInput: this.toPrismaMovieCreateInput(response.data),
-        movieGenreCreateInputs: response.data.genres.map((genre: MovieDbGenre) => {
-          return { movieId: response.data.id, genreId: genre.id };
-        }),
-      };
+      return this.toPrismaMovieCreateInputAndRelations(response.data);
     } catch (error) {
-      if (error instanceof AxiosError) {
-        logger.error(error.response?.data.status_code + ': ' + error.response?.data.status_message + ' ' + url.toString());
-        throw new NotFoundException(error.response?.data.status_message);
-      }
+      throw error;
     }
   }
 
@@ -194,6 +331,24 @@ export class TheMovieDb implements OnModuleInit {
     const results: Prisma.GenreCreateInput[] = [];
     genres.forEach((genre) => {
       results.push(this.toPrismaGenreCreateInput(genre));
+    });
+    return results;
+  }
+
+  async getLanguages(): Promise<Prisma.LanguageCreateInput[]> {
+    const url = new URL(`${this.apiBaseUrl}configuration/languages`);
+
+    const response = await axios.get(url.toString(), {
+      headers: {
+        Authorization: `Bearer ${this.apiKey}`,
+        Accept: 'application/json',
+      },
+    });
+    const languages = response.data;
+
+    const results: Prisma.LanguageCreateInput[] = [];
+    languages.forEach((language) => {
+      results.push(this.toPrismaLangugageCreateInput(language));
     });
     return results;
   }
