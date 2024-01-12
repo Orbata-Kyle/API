@@ -22,7 +22,13 @@ export class TournamentController {
   @Get('rankings/:interactionStatus')
   @ApiBearerAuth('access-token')
   @ApiOperation({ summary: 'Get User Tournament Rankings' })
-  @ApiParam({ name: 'interactionStatus', description: 'Interaction status to filter rankings' })
+  @ApiParam({
+    name: 'interactionStatus',
+    type: String,
+    enum: ['liked', 'disliked'],
+    description: 'Interaction status to filter rankings',
+    required: true,
+  })
   @ApiResponse({ status: 200, description: 'User tournament rankings', type: [MovieWithRankDto] })
   @ApiResponse({ status: 400, description: 'Bad Request - Invalid interactionStatus' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
@@ -38,7 +44,7 @@ export class TournamentController {
   @Post('rank')
   @ApiBearerAuth('access-token')
   @ApiOperation({ summary: 'Rank a Movie for a User in a Tournament' })
-  @ApiBody({ type: RankDto })
+  @ApiBody({ type: RankDto, required: true })
   @ApiResponse({ status: 200, description: 'Ranking processed successfully' })
   @ApiResponse({
     status: 400,
@@ -83,7 +89,13 @@ export class TournamentController {
   @Get('cycle/:interactionStatus')
   @ApiBearerAuth('access-token')
   @ApiOperation({ summary: 'Check if Tournament Ranking has a Cycle' })
-  @ApiParam({ name: 'interactionStatus', enum: ['liked', 'disliked'], description: 'Interaction status to check for cycles' })
+  @ApiParam({
+    name: 'interactionStatus',
+    type: String,
+    enum: ['liked', 'disliked'],
+    description: 'Interaction status to check for cycles',
+    required: true,
+  })
   @ApiResponse({ status: 200, description: 'Cycle existence status', type: Boolean })
   @ApiResponse({ status: 400, description: 'Invalid interactionStatus' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
@@ -98,7 +110,13 @@ export class TournamentController {
   @Put('forceMoviePlacement/:interactionStatus')
   @ApiBearerAuth('access-token')
   @ApiOperation({ summary: 'Force a Movie Placement for a User, between two other already ranked movies' })
-  @ApiParam({ name: 'interactionStatus', enum: ['liked', 'disliked'], description: 'Interaction status to force movie placement' })
+  @ApiParam({
+    name: 'interactionStatus',
+    type: String,
+    enum: ['liked', 'disliked'],
+    description: 'Interaction status to force movie placement',
+    required: true,
+  })
   @ApiResponse({ status: 200, description: 'Movie placement forced successfully', type: String })
   @ApiResponse({
     status: 400,

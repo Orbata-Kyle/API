@@ -20,7 +20,7 @@ export class MovieController {
 
   @Get('search')
   @ApiOperation({ summary: 'Search for a movie by title' })
-  @ApiQuery({ name: 'title', type: String, description: 'Title of the movie' })
+  @ApiQuery({ name: 'title', type: String, description: 'Title of the movie', required: true })
   @ApiResponse({ status: 200, description: 'Movies found', type: [MovieDto] })
   async searchForMovieByTitle(@Query('title') title: string): Promise<MovieDto[]> {
     const movie = await this.movieService.searchForMovieByTitle(title);
@@ -29,7 +29,7 @@ export class MovieController {
 
   @Get(':id')
   @ApiOperation({ summary: 'Get a movie by its ID' })
-  @ApiParam({ name: 'id', type: String, description: 'ID of the movie' })
+  @ApiParam({ name: 'id', type: String, description: 'ID of the movie', required: true })
   @ApiResponse({ status: 200, description: 'Movie details', type: DetailedMovieDto })
   @ApiResponse({ status: 404, description: 'Movie not found' })
   async getMovieById(@Param('id', new ValidateStringIdPipe()) id: string): Promise<DetailedMovieDto> {
@@ -41,8 +41,8 @@ export class MovieController {
   @Post(':id/rate/:action')
   @ApiBearerAuth('access-token')
   @ApiOperation({ summary: 'Rate a movie' })
-  @ApiParam({ name: 'id', type: String, description: 'ID of the movie' })
-  @ApiParam({ name: 'action', type: String, enum: ['liked', 'disliked', 'unseen'], description: 'Rating action' })
+  @ApiParam({ name: 'id', type: String, description: 'ID of the movie', required: true })
+  @ApiParam({ name: 'action', type: String, enum: ['liked', 'disliked', 'unseen'], description: 'Rating action', required: true })
   @ApiResponse({ status: 201, description: 'Movie rated', type: MovieRatingDto })
   @ApiResponse({ status: 400, description: 'Invalid action' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })

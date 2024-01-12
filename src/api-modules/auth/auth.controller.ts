@@ -14,7 +14,7 @@ export class AuthController {
   @ApiOperation({ summary: 'User Signup' })
   @ApiResponse({ status: 201, description: 'User successfully registered', type: AuthResponseDto })
   @ApiResponse({ status: 403, description: 'Forbidden - Email already taken' })
-  @ApiBody({ type: AuthDto })
+  @ApiBody({ type: AuthDto, required: true })
   async signup(@Body() dto: AuthDto): Promise<AuthResponseDto> {
     const result = await this.authService.signup(dto);
     return this.responseValidationService.validateResponse(result, AuthResponseDto);
@@ -25,7 +25,7 @@ export class AuthController {
   @ApiOperation({ summary: 'User Signin' })
   @ApiResponse({ status: 200, description: 'User successfully logged in', type: AuthResponseDto })
   @ApiResponse({ status: 403, description: 'Forbidden - User not found or password incorrect' })
-  @ApiBody({ type: AuthSigninDto })
+  @ApiBody({ type: AuthSigninDto, required: true })
   async signin(@Body() dto: AuthSigninDto): Promise<AuthResponseDto> {
     const result = await this.authService.signin(dto);
     return this.responseValidationService.validateResponse(result, AuthResponseDto);

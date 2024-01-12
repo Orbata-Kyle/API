@@ -39,7 +39,7 @@ export class UserController {
   @Get(':id')
   @ApiBearerAuth('access-token')
   @ApiOperation({ summary: 'Get user by ID (Admin only)' })
-  @ApiParam({ name: 'id', type: Number, description: 'User ID' })
+  @ApiParam({ name: 'id', type: Number, description: 'User ID', required: true })
   @ApiResponse({ status: 200, description: 'User profile with ratings', type: SafeUserWithRatingsDto })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 404, description: 'User not found' })
