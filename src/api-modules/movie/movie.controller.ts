@@ -3,11 +3,14 @@ import { GetUser } from '../auth/decorator';
 import { JwtGuard } from '../auth/guard';
 import { MovieService } from './movie.service';
 import { ApiOperation, ApiResponse, ApiTags, ApiParam, ApiQuery, ApiBearerAuth } from '@nestjs/swagger';
-import { MovieRatingDto, MovieDto, DetailedMovieDto } from './dto/response';
+import { MovieRatingDto, DetailedMovieDto } from './dto/response';
 import { MovieCacheService } from '../../utility-modules/movie-cache/db-movie-cache.service';
 import { ResponseValidationService } from '../../utility-modules/validation/response-validation.service';
 import { ValidateStringIdPipe } from '../../pipes/string-id.pipe';
 import { ValidateFullInteractionStatus } from '../..//pipes/full-interaction-status.pipe';
+import { SeachResultDto } from './dto/response/search-result.dto';
+import logger from '../../utils/logging/winston-config';
+import { OptionalParseIntPipe } from '../../pipes/optional-number.pipe';
 
 @ApiTags('Movie')
 @Controller('movie')
@@ -21,10 +24,15 @@ export class MovieController {
   @Get('search')
   @ApiOperation({ summary: 'Search for a movie by title' })
   @ApiQuery({ name: 'title', type: String, description: 'Title of the movie', required: true })
-  @ApiResponse({ status: 200, description: 'Movies found', type: [MovieDto] })
-  async searchForMovieByTitle(@Query('title') title: string): Promise<MovieDto[]> {
-    const movie = await this.movieService.searchForMovieByTitle(title);
-    return await this.responseValidationService.validateArrayResponse(movie, MovieDto);
+  @ApiQuery({ name: 'page', type: Number, description: 'Page of results to return', required: false })
+  @ApiResponse({ status: 200, description: 'Movies found', type: SeachResultDto })
+  async searchForMovieByTitle(@Query('title') title: string, @Query('page', new OptionalParseIntPipe()) page = 1): Promise<SeachResultDto> {
+    const movies = await this.movieService.searchForMovieByTitle(title, page);
+    const result = {
+      movies,
+      page: page || 1,
+    };
+    return await this.responseValidationService.validateResponse(result, SeachResultDto);
   }
 
   @Get(':id')

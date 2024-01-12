@@ -275,9 +275,12 @@ export class TheMovieDb {
     return results;
   }
 
-  async searchForMovieByTitle(title: string, onlyReleased = true): Promise<Prisma.MovieCreateInput[]> {
+  async searchForMovieByTitle(title: string, page: number, onlyReleased = true): Promise<Prisma.MovieCreateInput[]> {
     const url = new URL(`${this.apiBaseUrl}search/movie`);
     url.searchParams.set('query', title);
+    if (page) {
+      url.searchParams.set('page', page.toString());
+    }
 
     const response = await axios.get(url.toString(), {
       headers: {

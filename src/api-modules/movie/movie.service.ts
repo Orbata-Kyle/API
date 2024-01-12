@@ -13,9 +13,9 @@ export class MovieService {
     private readonly tournamentService: TournamentService,
   ) {}
 
-  async searchForMovieByTitle(title: string): Promise<Movie[]> {
+  async searchForMovieByTitle(title: string, page: number): Promise<Movie[]> {
     logger.info('Searching for movie by title: ' + title);
-    const movies = await this.movieCache.searchForMovieByTitle(title);
+    const movies = await this.movieCache.searchForMovieByTitle(title, page);
 
     return movies;
   }

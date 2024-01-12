@@ -186,7 +186,16 @@ describe('App e2e', () => {
         await assertMovieExistsInDb();
       });
       it('Should search for a movie by empty title', () => {
-        return pactum.spec().get('/movie/search').withQueryParams('title', '').expectStatus(200).expectBody([]);
+        return pactum.spec().get('/movie/search').withQueryParams('title', '').expectStatus(200).expectBody({ movies: [], page: 1 });
+      });
+      it('Should search for a movie by title with page', () => {
+        return pactum
+          .spec()
+          .get('/movie/search')
+          .withQueryParams('title', 'Inception')
+          .withQueryParams('page', '2')
+          .expectStatus(200)
+          .expectJsonLike({ page: 2 });
       });
     });
 

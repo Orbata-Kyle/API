@@ -65,8 +65,8 @@ export class MovieCacheService implements OnModuleInit {
     return movies;
   }
 
-  async searchForMovieByTitle(title: string): Promise<Movie[]> {
-    const moviesToSave = await this.theMovieDb.searchForMovieByTitle(title);
+  async searchForMovieByTitle(title: string, page: number): Promise<Movie[]> {
+    const moviesToSave = await this.theMovieDb.searchForMovieByTitle(title, page);
     await this.saveMoviesToDb(moviesToSave);
 
     const movies = await this.getMoviesFromDb(moviesToSave.map((movie) => movie.id));
