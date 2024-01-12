@@ -1,4 +1,4 @@
-import { Injectable, OnModuleInit } from '@nestjs/common';
+import { Injectable, NotFoundException, OnModuleInit } from '@nestjs/common';
 import { Movie, Prisma } from '@prisma/client';
 import logger from '../../utils/logging/winston-config';
 import { PrismaService } from '../prisma/prisma.service';
@@ -98,7 +98,14 @@ export class MovieCacheService implements OnModuleInit {
       }
     }
 
-    const movieToSave = await this.theMovieDb.getMovieById(id);
+    let movieToSave: MovieCreateInputAndRelations;
+    try {
+      movieToSave = await this.theMovieDb.getMovieById(id);
+    } catch (error) {
+      if (error.response.status === 404) {
+        throw new NotFoundException('Movie not found');
+      }
+    }
     const movie = await this.saveMovieToDb(movieToSave, includeRelations);
 
     // Saved movie does not have relations, so we need to get it again

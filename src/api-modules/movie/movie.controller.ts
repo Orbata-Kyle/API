@@ -1,4 +1,4 @@
-import { BadRequestException, Controller, Get, Param, Post, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Param, Post, Query, UseGuards } from '@nestjs/common';
 import { GetUser } from '../auth/decorator';
 import { JwtGuard } from '../auth/guard';
 import { MovieService } from './movie.service';
@@ -6,6 +6,8 @@ import { ApiOperation, ApiResponse, ApiTags, ApiParam, ApiQuery, ApiBearerAuth }
 import { MovieRatingDto, MovieDto, DetailedMovieDto } from './dto/response';
 import { MovieCacheService } from '../../utility-modules/movie-cache/db-movie-cache.service';
 import { ResponseValidationService } from '../../utility-modules/validation/response-validation.service';
+import { ValidateStringIdPipe } from '../../pipes/string-id.pipe';
+import { ValidateFullInteractionStatus } from '../..//pipes/full-interaction-status.pipe';
 
 @ApiTags('Movie')
 @Controller('movie')
@@ -30,7 +32,7 @@ export class MovieController {
   @ApiParam({ name: 'id', type: String, description: 'ID of the movie' })
   @ApiResponse({ status: 200, description: 'Movie details', type: DetailedMovieDto })
   @ApiResponse({ status: 404, description: 'Movie not found' })
-  async getMovieById(@Param('id') id: string): Promise<DetailedMovieDto> {
+  async getMovieById(@Param('id', new ValidateStringIdPipe()) id: string): Promise<DetailedMovieDto> {
     const movie = await this.dbMovieCache.getMovieById(Number(id));
     return await this.responseValidationService.validateResponse(movie, DetailedMovieDto);
   }
@@ -46,12 +48,11 @@ export class MovieController {
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 404, description: 'Movie not found' })
   @ApiBearerAuth('access-token')
-  async rateMovieById(@Param('id') id: string, @Param('action') action: string, @GetUser('id') userId: number): Promise<MovieRatingDto> {
-    // Make sure the action is valid
-    if (!['liked', 'disliked', 'unseen'].includes(action)) {
-      throw new BadRequestException('Invalid action');
-    }
-
+  async rateMovieById(
+    @Param('id', new ValidateStringIdPipe()) id: string,
+    @Param('action', new ValidateFullInteractionStatus()) action: string,
+    @GetUser('id') userId: number,
+  ): Promise<MovieRatingDto> {
     await this.dbMovieCache.ensureMovieInDb(Number(id));
 
     const result = await this.movieService.rateMovieById(id, action, userId);

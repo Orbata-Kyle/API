@@ -7,6 +7,7 @@ import { PrismaService } from '../../utility-modules/prisma/prisma.service';
 import { ForceRankDto, RankDto } from './dto/request';
 import { ApiOperation, ApiResponse, ApiTags, ApiBearerAuth, ApiBody, ApiParam } from '@nestjs/swagger';
 import { ResponseValidationService } from '../../utility-modules/validation/response-validation.service';
+import { ValidateSeenInteractionStatus } from '../..//pipes/seen-interaction-status.pipe';
 
 @ApiTags('Tournament')
 @Controller('tournament')
@@ -21,17 +22,14 @@ export class TournamentController {
   @Get('rankings/:interactionStatus')
   @ApiBearerAuth('access-token')
   @ApiOperation({ summary: 'Get User Tournament Rankings' })
-  @ApiParam({ name: 'interactionStatus', enum: ['liked', 'disliked'], description: 'Interaction status to filter rankings' })
+  @ApiParam({ name: 'interactionStatus', description: 'Interaction status to filter rankings' })
   @ApiResponse({ status: 200, description: 'User tournament rankings', type: [MovieWithRankDto] })
   @ApiResponse({ status: 400, description: 'Bad Request - Invalid interactionStatus' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   async getUsersTournamentRankings(
     @GetUser('id') userId: number,
-    @Param('interactionStatus') interactionStatus: string,
+    @Param('interactionStatus', new ValidateSeenInteractionStatus()) interactionStatus: string,
   ): Promise<MovieWithRankDto[]> {
-    if (!['liked', 'disliked'].includes(interactionStatus)) {
-      throw new BadRequestException('Invalid interactionStatus');
-    }
     const result = await this.tournamentService.getUsersTournamentRankings(userId, interactionStatus === 'liked');
     return this.responseValidationService.validateArrayResponse(result, MovieWithRankDto);
   }
@@ -89,10 +87,10 @@ export class TournamentController {
   @ApiResponse({ status: 200, description: 'Cycle existence status', type: Boolean })
   @ApiResponse({ status: 400, description: 'Invalid interactionStatus' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
-  async hasCycle(@GetUser('id') userId: number, @Param('interactionStatus') interactionStatus: string): Promise<boolean> {
-    if (!['liked', 'disliked'].includes(interactionStatus)) {
-      throw new BadRequestException('Invalid interactionStatus');
-    }
+  async hasCycle(
+    @GetUser('id') userId: number,
+    @Param('interactionStatus', new ValidateSeenInteractionStatus()) interactionStatus: string,
+  ): Promise<boolean> {
     return this.tournamentService.findCycle(userId, interactionStatus === 'liked');
   }
 
@@ -114,11 +112,8 @@ export class TournamentController {
   async forceMoviePlacement(
     @Body() dto: ForceRankDto,
     @GetUser('id') userId: number,
-    @Param('interactionStatus') interactionStatus: string,
+    @Param('interactionStatus', new ValidateSeenInteractionStatus()) interactionStatus: string,
   ): Promise<string> {
-    if (!['liked', 'disliked'].includes(interactionStatus)) {
-      throw new BadRequestException('Invalid interactionStatus');
-    }
     // Make sure aboveMovieId and belowMovieId are not the same and that they are not the same as movieId
     if (dto.aboveMovieId === dto.belowMovieId || dto.aboveMovieId === dto.movieId || dto.belowMovieId === dto.movieId) {
       throw new BadRequestException('aboveMovieId and belowMovieId cannot be the same and cannot be the same as movieId');
