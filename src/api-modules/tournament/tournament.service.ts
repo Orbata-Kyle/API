@@ -73,7 +73,7 @@ export class TournamentService {
   }
 
   async getMatchup(userId: number) {
-    let liked = Math.random() < 0.5;
+    let liked = true;
     let movies = await this.findMatchupMovies(liked, userId);
     if (movies.length === 0) {
       liked = !liked;
