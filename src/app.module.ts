@@ -11,6 +11,7 @@ import { UserModule } from './api-modules/user/user.module';
 import { TournamentModule } from './api-modules/tournament/tournament.module';
 import { MovieCacheModule } from './utility-modules/movie-cache/db-movie-cache.module';
 import { ResponseValidationModule } from './utility-modules/validation/response-validation.module';
+import { RecsModule } from './api-modules/recs/recs.module';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { ResponseValidationModule } from './utility-modules/validation/response-
     UserModule,
     TournamentModule,
     MovieCacheModule,
+    RecsModule,
   ],
   controllers: [AppController],
   providers: [],

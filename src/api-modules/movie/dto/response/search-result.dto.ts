@@ -11,5 +11,6 @@ export class SeachResultDto {
 
   @IsNumber()
   @IsNotEmpty()
+  @ApiProperty({ type: Number, description: 'Page number of the results' })
   page: number;
 }

@@ -967,6 +967,39 @@ describe('App e2e', () => {
           .expectBodyContains('false');
       });
     });
+
+    describe('recommendations', () => {
+      it('Should prepare recs', async () => {
+        await rateMovie('200', 'liked');
+        await rateMovie('201', 'liked');
+        await rateMovie('203', 'liked');
+        await rateMovie('204', 'liked');
+      });
+
+      it('Should get recommendations', async () => {
+        let responseBody;
+
+        await pactum
+          .spec()
+          .get('/recs')
+          .withHeaders({
+            Authorization: 'Bearer $S{userAt}',
+          })
+          .expectStatus(200)
+          .toss()
+          .then((res) => {
+            responseBody = res.body;
+          });
+
+        expect(responseBody.movies.length).toBeGreaterThan(0);
+
+        for (let i = 0; i < responseBody.movies.length; i++) {
+          // await assertRecommendationExistsInDb(responseBody.movies[i].id);
+          // ^cannot do this if not awaiting the prsima insert in the cache service, maybe once theres other tests after this
+          await assertUserMovieRatingDoesntExistsInDb(responseBody.movies[i].id);
+        }
+      });
+    });
   });
 
   // ------------------ Helper functions ------------------
@@ -1019,6 +1052,14 @@ describe('App e2e', () => {
 
     // If the loop completes without returning, throw an error
     throw new Error(`Rating for movieId ${movieId} and user ${userIdTemp} not found in database after ${maxAttempts} attempts.`);
+  }
+
+  async function assertUserMovieRatingDoesntExistsInDb(movieId: number, userIdTemp = userId) {
+    const query = { where: { userId: userIdTemp, movieId } };
+    const ratings = await prisma.userMovieRating.findMany(query);
+    if (ratings.length > 0) {
+      throw new Error(`Rating with movieId ${movieId} for user ${userIdTemp} found in database.`);
+    }
   }
 
   async function assertTournamentRatingExistsInDb(
@@ -1078,6 +1119,24 @@ describe('App e2e', () => {
     }
 
     return;
+  }
+
+  async function assertRecommendationExistsInDb(movieId: number, maxAttempts = 3, delay = 200) {
+    let attempts = 0;
+
+    while (attempts < maxAttempts) {
+      const recommendations = await prisma.movieRecommedation.findMany({ where: { recommendationMovieId: movieId } });
+      if (recommendations.length > 0) {
+        return; // Recommendation with specified movieId found, exit the function
+      }
+
+      // Wait before the next attempt
+      await new Promise((resolve) => setTimeout(resolve, delay));
+      attempts++;
+    }
+
+    // If the loop completes without returning, throw an error
+    throw new Error(`Recommendation with movieId ${movieId} not found in database after ${maxAttempts} attempts.`);
   }
 
   async function playOutTournamentMatchup(winnerId: number, loserId: number) {

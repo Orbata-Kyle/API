@@ -9,28 +9,30 @@ datasource db {
 }
 
 model Movie {
-  id              Int                   @id
-  title           String
-  posterUrl       String?               @db.Text
-  backdropUrl     String?               @db.Text
-  synopsis        String?               @db.Text
-  releaseDate     DateTime?             @db.Date
-  adult           Boolean?              @default(false)
-  popularity      Float?
-  voteCount       Int?
-  voteAverage     Float?
-  genres          MovieGenre[]
-  UserMovieRating UserMovieRating[]
-  UserMoviePairs1 TournamentRating[]    @relation("movie1")
-  UserMoviePairs2 TournamentRating[]    @relation("movie2")
-  details         MovieDetails[]
-  spokenLanguages MovieSpokenLanguage[]
-  cast            Cast[]
-  crew            Crew[]
-  keywords        MovieKeyword[]
-  videos          Video[]
-  updatedAt       DateTime              @updatedAt
-  createdAt       DateTime              @default(now())
+  id                      Int                   @id
+  title                   String
+  posterUrl               String?               @db.Text
+  backdropUrl             String?               @db.Text
+  synopsis                String?               @db.Text
+  releaseDate             DateTime?             @db.Date
+  adult                   Boolean?              @default(false)
+  popularity              Float?
+  voteCount               Int?
+  voteAverage             Float?
+  genres                  MovieGenre[]
+  UserMovieRating         UserMovieRating[]
+  UserMoviePairs1         TournamentRating[]    @relation("movie1")
+  UserMoviePairs2         TournamentRating[]    @relation("movie2")
+  details                 MovieDetails[]
+  spokenLanguages         MovieSpokenLanguage[]
+  cast                    Cast[]
+  crew                    Crew[]
+  keywords                MovieKeyword[]
+  videos                  Video[]
+  updatedAt               DateTime              @updatedAt
+  createdAt               DateTime              @default(now())
+  MovieRecommedations     MovieRecommedation[]  @relation("movie")
+  RecommendationForMovies MovieRecommedation[]  @relation("recommendationMovie")
 
   @@index([title])
 }
@@ -150,6 +152,17 @@ model Language {
   englishName         String?
   name                String?
   movieSpokenLanguage MovieSpokenLanguage[]
+}
+
+model MovieRecommedation {
+  id                    Int   @id @default(autoincrement())
+  movieId               Int
+  recommendationMovieId Int
+  movie                 Movie @relation(fields: [movieId], references: [id], name: "movie", onDelete: Cascade)
+  recommendationMovie   Movie @relation(fields: [recommendationMovieId], references: [id], name: "recommendationMovie", onDelete: Cascade)
+
+  @@unique([movieId, recommendationMovieId])
+  @@index([movieId])
 }
 
 model User {

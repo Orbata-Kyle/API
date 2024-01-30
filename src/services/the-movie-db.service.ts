@@ -355,4 +355,28 @@ export class TheMovieDb {
     });
     return results;
   }
+
+  async getRecommendationsForMovie(id: number, onlyReleased = true): Promise<Prisma.MovieCreateInput[]> {
+    const url = new URL(`${this.apiBaseUrl}movie/${id}/recommendations`);
+    // Only gets half of recommendations, 20/40, next would be on new page
+
+    const response = await axios.get(url.toString(), {
+      headers: {
+        Authorization: `Bearer ${this.apiKey}`,
+        Accept: 'application/json',
+      },
+    });
+
+    const results: Prisma.MovieCreateInput[] = [];
+    response.data.results.forEach((movie) => {
+      if (onlyReleased && new Date(movie.release_date) > new Date()) {
+        return;
+      }
+      if (movie.popularity < 5) {
+        return;
+      }
+      results.push(this.toPrismaMovieCreateInput(movie));
+    });
+    return results;
+  }
 }

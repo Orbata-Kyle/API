@@ -117,6 +117,36 @@ export class MovieCacheService implements OnModuleInit {
     return movie;
   }
 
+  async getRecommendationsForMovie(movieId: number): Promise<Movie[]> {
+    const existingRecommendations = await this.prisma.movieRecommedation.findMany({
+      where: {
+        movieId,
+      },
+      select: {
+        recommendationMovie: true,
+      },
+    });
+    if (existingRecommendations.length > 0) {
+      console.log('Found existing recommendations');
+      const movies = existingRecommendations.map((recommendation) => recommendation.recommendationMovie);
+      return movies;
+    }
+
+    const recommendations = await this.theMovieDb.getRecommendationsForMovie(movieId);
+    await this.saveMoviesToDb(recommendations);
+
+    this.prisma.movieRecommedation.createMany({
+      data: recommendations.map((movie) => ({
+        movieId,
+        recommendationMovieId: movie.id,
+      })),
+      skipDuplicates: true,
+    });
+
+    const movies = await this.getMoviesFromDb(recommendations.map((movie) => movie.id));
+    return movies;
+  }
+
   private async saveMoviesToDb(movies: Prisma.MovieCreateInput[], skipDuplicates = true): Promise<void> {
     const savedMovies = await this.prisma.movie.createMany({
       data: movies,

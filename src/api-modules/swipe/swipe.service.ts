@@ -43,7 +43,7 @@ export class SwipeService {
     }
   }
 
-  async getNextMovieToSwipe(userId: number) {
+  async getNextMovieToSwipe(userId: number): Promise<Movie> {
     let filteredMovie: Movie | undefined;
     let popularPage = 1;
     let topRatedPage = 1;
