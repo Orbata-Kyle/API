@@ -99,13 +99,19 @@ export class SwipeService {
 
     // Get by top rated then
     let topRatedPage = 1;
+    let popularPage = 1;
 
     // Iterate pages of top rated movies (popular if it runs out) and add to return list until we have at least 40 movies
     while (filteredMovies.length <= 40) {
       // Got rid of randomness for the popular movies for now because not wanted,
       // getRelevantMovies still supports it for the time being if needed and will return popular ones in case we run out of top rated ones (highly unlikely)
-      const { movies: relevantMovieList, topRatedPage: updatedTopRatedPage } = await this.getRelevantMovies(false, 0, topRatedPage);
+      const {
+        movies: relevantMovieList,
+        popularPage: updatedPopularPage,
+        topRatedPage: updatedTopRatedPage,
+      } = await this.getRelevantMovies(false, popularPage, topRatedPage);
       topRatedPage = updatedTopRatedPage;
+      popularPage = updatedPopularPage;
 
       // Find and filter out movies that the user has already watched
       const alreadyWatchedMovies = await this.prisma.userMovieRating.findMany({
