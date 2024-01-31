@@ -361,28 +361,32 @@ describe('App e2e', () => {
     });
   });
 
-  describe('Swipe', () => {
+  describe('Swipe default', () => {
     describe('getNextMovieToSwipe', async () => {
-      it('Should getNextMovieToSwipe', () => {
-        return pactum
+      let movieId: number;
+
+      it('Should getNextMovieToSwipe', async () => {
+        let responseBody;
+
+        await pactum
           .spec()
           .get('/swipe/next')
           .withHeaders({
             Authorization: 'Bearer $S{userAt}',
           })
           .expectStatus(200)
-          .expectBodyContains('id')
-          .expectBodyContains('title')
-          .stores('movieId', 'id');
+          .toss()
+          .then((res) => {
+            responseBody = res.body;
+          });
+
+        movieId = responseBody[0].id;
       });
 
       it('Rate previous movie then should get different NextMovieToSwipe', async () => {
         await pactum.sleep(200);
         // Rate this movie
-        await rateMovie('$S{movieId}', 'liked');
-
-        const prevMovieId = pactum.stash.getDataStore()['movieId'];
-        expect(prevMovieId).toBeDefined();
+        await rateMovie(movieId.toString(), 'liked');
 
         return pactum
           .spec()
@@ -391,14 +395,65 @@ describe('App e2e', () => {
             Authorization: 'Bearer $S{userAt}',
           })
           .expectStatus(200)
-          .expectBodyContains('id')
-          .expectBodyContains('title')
           .expect((res) => {
-            if (JSON.stringify(res.res.body).includes(prevMovieId)) {
+            if (JSON.stringify(res.res.body).includes('"id":' + movieId.toString)) {
               throw new Error('Got the same movie as before, even though it was rated');
             }
           });
       });
+    });
+  });
+
+  describe('Swipe advanced test', () => {
+    it('create new user for swipe test', async () => {
+      await pactum
+        .spec()
+        .post('/auth/signup')
+        .withBody({
+          email: 'testUser@test.de',
+          password: 'test',
+          firstName: 'testFirst',
+          lastName: 'testLast',
+        })
+        .expectStatus(201)
+        .stores('user2At', 'access_token');
+    });
+
+    it('Should getNextMoviesToSwipe with movies rated by user 1 at the start of the list and no duplicates', async () => {
+      let responseBody;
+      await pactum
+        .spec()
+        .get('/swipe/next')
+        .withHeaders({
+          Authorization: 'Bearer $S{user2At}',
+        })
+        .expectStatus(200)
+        .expectJsonLike([
+          {
+            id: 13,
+          },
+          {
+            id: 100,
+          },
+          {
+            id: 102,
+          },
+        ])
+        .inspect()
+        .toss()
+        .then((res) => {
+          responseBody = res.body;
+        });
+
+      expect(responseBody.length).toBeGreaterThanOrEqual(40);
+
+      for (let i = 0; i < responseBody.length; i++) {
+        for (let j = i + 1; j < responseBody.length; j++) {
+          if (responseBody[i].id === responseBody[j].id) {
+            throw new Error('Duplicate movie found');
+          }
+        }
+      }
     });
   });
 

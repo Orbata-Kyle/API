@@ -43,22 +43,68 @@ export class SwipeService {
     }
   }
 
-  async getNextMovieToSwipe(userId: number): Promise<Movie> {
-    let filteredMovie: Movie | undefined;
-    let popularPage = 1;
-    let topRatedPage = 1;
-    // TODO: also randomdly get from recommended lists from similarity scores
-    // Let random chance decide whether to get a movie from popular or top rated
-    const fromPopularMovies = Math.random() < 0.5;
+  async getNextMovieToSwipe(userId: number): Promise<Movie[]> {
+    // Get all movies liked or disliked by other users, not rated by current one
+    // If at least a certain number of movies, return them ordered by number of rates
+    // Else get top rated movies not already rated by current user (If exhausted, get popular movies not already rated by current user)
 
-    // Iterate pages of popular and top rated movies until we find one that the user hasn't watched
-    while (!filteredMovie) {
-      const {
-        movies: relevantMovieList,
-        popularPage: updatedPopularPage,
-        topRatedPage: updatedTopRatedPage,
-      } = await this.getRelevantMovies(fromPopularMovies, popularPage, topRatedPage);
-      popularPage = updatedPopularPage;
+    let filteredMovies: Movie[] = [];
+
+    // Get movies rated (not 'unseen') by other users, not rated by current one, order by number of likes
+    const ratedByOthersGrouped = await this.prisma.userMovieRating.groupBy({
+      by: ['movieId'],
+      where: {
+        userId: {
+          not: userId,
+        },
+        OR: [{ interactionStatus: 'liked' }, { interactionStatus: 'disliked' }],
+        movieId: {
+          notIn: (
+            await this.prisma.userMovieRating.findMany({
+              where: {
+                userId,
+              },
+              select: {
+                movieId: true,
+              },
+            })
+          ).map((movie) => movie.movieId),
+        },
+      },
+      _count: {
+        movieId: true,
+      },
+    });
+
+    // create map of movieId to number of rates
+    const ratedByOthersGroupedMap = new Map<number, number>();
+    ratedByOthersGrouped.forEach((movie) => {
+      ratedByOthersGroupedMap.set(movie.movieId, movie._count.movieId);
+    });
+
+    if (ratedByOthersGrouped.length >= 1) {
+      const moviesRatedByOthers = await this.prisma.movie.findMany({
+        where: {
+          id: {
+            in: ratedByOthersGrouped.map((movie) => movie.movieId),
+          },
+        },
+      });
+      // Sort by number of rates
+      moviesRatedByOthers.sort((a, b) => {
+        return ratedByOthersGroupedMap.get(b.id) - ratedByOthersGroupedMap.get(a.id);
+      });
+      filteredMovies = moviesRatedByOthers;
+    }
+
+    // Get by top rated then
+    let topRatedPage = 1;
+
+    // Iterate pages of top rated movies (popular if it runs out) and add to return list until we have at least 40 movies
+    while (filteredMovies.length <= 40) {
+      // Got rid of randomness for the popular movies for now because not wanted,
+      // getRelevantMovies still supports it for the time being if needed and will return popular ones in case we run out of top rated ones (highly unlikely)
+      const { movies: relevantMovieList, topRatedPage: updatedTopRatedPage } = await this.getRelevantMovies(false, 0, topRatedPage);
       topRatedPage = updatedTopRatedPage;
 
       // Find and filter out movies that the user has already watched
@@ -76,12 +122,14 @@ export class SwipeService {
 
       const alreadyWatchedMovieIds = new Set(alreadyWatchedMovies.map((movie) => movie.movieId));
 
-      filteredMovie = relevantMovieList.find((movie) => {
-        return !alreadyWatchedMovieIds.has(movie.id);
-      });
+      filteredMovies = filteredMovies.concat(
+        relevantMovieList.filter((movie) => {
+          return !alreadyWatchedMovieIds.has(movie.id) && !ratedByOthersGroupedMap.has(movie.id);
+        }),
+      );
     }
 
-    return filteredMovie;
+    return filteredMovies;
   }
 
   private async getRelevantMovies(

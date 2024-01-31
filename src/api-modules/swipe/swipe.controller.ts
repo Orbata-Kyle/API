@@ -15,10 +15,10 @@ export class SwipeController {
   @Get('next')
   @ApiBearerAuth('access-token')
   @ApiOperation({ summary: 'Get Next Movie to Swipe' })
-  @ApiResponse({ status: 200, description: 'Next movie to swipe', type: MovieDto })
+  @ApiResponse({ status: 200, description: 'Next movie to swipe', type: [MovieDto] })
   @ApiResponse({ status: 404, description: 'No more movies to swipe' })
-  async getNextMovieToSwipe(@GetUser('id') userId: number): Promise<MovieDto> {
+  async getNextMovieToSwipe(@GetUser('id') userId: number): Promise<MovieDto[]> {
     const result = await this.swipeService.getNextMovieToSwipe(userId);
-    return await this.responseValidationService.validateResponse(result, MovieDto);
+    return await this.responseValidationService.validateArrayResponse(result, MovieDto);
   }
 }
