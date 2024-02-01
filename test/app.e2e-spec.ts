@@ -359,6 +359,89 @@ describe('App e2e', () => {
           });
       });
     });
+
+    describe('Change profile', () => {
+      it('Should throw if not logged in', () => {
+        return pactum
+          .spec()
+          .put('/user/changeProfile')
+          .withBody({
+            firstName: 'testFirst',
+            lastName: 'testLast',
+          })
+          .expectStatus(401);
+      });
+
+      it('Should throw if no body provided', () => {
+        return pactum
+          .spec()
+          .put('/user/changeProfile')
+          .withHeaders({
+            Authorization: 'Bearer $S{userAt}',
+          })
+          .expectStatus(400);
+      });
+
+      it('Should change name', () => {
+        return pactum
+          .spec()
+          .put('/user/changeProfile')
+          .withHeaders({
+            Authorization: 'Bearer $S{userAt}',
+          })
+          .withBody({
+            firstName: 'testFirstNew',
+            lastName: 'testLastNew',
+          })
+          .expectStatus(200)
+          .expectJsonLike({
+            firstName: 'testFirstNew',
+            lastName: 'testLastNew',
+          });
+      });
+
+      it('Should change email', () => {
+        return pactum
+          .spec()
+          .put('/user/changeProfile')
+          .withHeaders({
+            Authorization: 'Bearer $S{userAt}',
+          })
+          .withBody({
+            email: 'newMail@test.de',
+          })
+          .expectStatus(200)
+          .expectJsonLike({
+            email: 'newMail@test.de',
+          });
+      });
+
+      it('Should change password and invalidate previous sessions', async () => {
+        const previousAccessToken = pactum.stash.getDataStore()['userAt'];
+
+        await pactum
+          .spec()
+          .put('/user/changeProfile')
+          .withHeaders({
+            Authorization: 'Bearer $S{userAt}',
+          })
+          .withBody({
+            password: 'newPassword',
+          })
+          .expectStatus(200)
+          .expectBodyContains('access_token')
+          .stores('userAt', 'access_token'); // Store new access token
+
+        // Try to access with old access token
+        await pactum
+          .spec()
+          .get('/user')
+          .withHeaders({
+            Authorization: `Bearer ${previousAccessToken}`,
+          })
+          .expectStatus(401);
+      });
+    });
   });
 
   describe('Swipe default', () => {
@@ -439,7 +522,6 @@ describe('App e2e', () => {
             id: 102,
           },
         ])
-        .inspect()
         .toss()
         .then((res) => {
           responseBody = res.body;
@@ -1022,38 +1104,38 @@ describe('App e2e', () => {
           .expectBodyContains('false');
       });
     });
+  });
 
-    describe('recommendations', () => {
-      it('Should prepare recs', async () => {
-        await rateMovie('200', 'liked');
-        await rateMovie('201', 'liked');
-        await rateMovie('203', 'liked');
-        await rateMovie('204', 'liked');
-      });
+  describe('recommendations', () => {
+    it('Should prepare recs', async () => {
+      await rateMovie('200', 'liked');
+      await rateMovie('201', 'liked');
+      await rateMovie('203', 'liked');
+      await rateMovie('204', 'liked');
+    });
 
-      it('Should get recommendations', async () => {
-        let responseBody;
+    it('Should get recommendations', async () => {
+      let responseBody;
 
-        await pactum
-          .spec()
-          .get('/recs')
-          .withHeaders({
-            Authorization: 'Bearer $S{userAt}',
-          })
-          .expectStatus(200)
-          .toss()
-          .then((res) => {
-            responseBody = res.body;
-          });
+      await pactum
+        .spec()
+        .get('/recs')
+        .withHeaders({
+          Authorization: 'Bearer $S{userAt}',
+        })
+        .expectStatus(200)
+        .toss()
+        .then((res) => {
+          responseBody = res.body;
+        });
 
-        expect(responseBody.movies.length).toBeGreaterThan(0);
+      expect(responseBody.movies.length).toBeGreaterThan(0);
 
-        for (let i = 0; i < responseBody.movies.length; i++) {
-          // await assertRecommendationExistsInDb(responseBody.movies[i].id);
-          // ^cannot do this if not awaiting the prsima insert in the cache service, maybe once theres other tests after this
-          await assertUserMovieRatingDoesntExistsInDb(responseBody.movies[i].id);
-        }
-      });
+      for (let i = 0; i < responseBody.movies.length; i++) {
+        // await assertRecommendationExistsInDb(responseBody.movies[i].id);
+        // ^cannot do this if not awaiting the prsima insert in the cache service, maybe once theres other tests after this
+        await assertUserMovieRatingDoesntExistsInDb(responseBody.movies[i].id);
+      }
     });
   });
 

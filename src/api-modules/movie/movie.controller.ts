@@ -9,7 +9,6 @@ import { ResponseValidationService } from '../../utility-modules/validation/resp
 import { ValidateStringIdPipe } from '../../pipes/string-id.pipe';
 import { ValidateFullInteractionStatus } from '../..//pipes/full-interaction-status.pipe';
 import { SeachResultDto } from './dto/response/search-result.dto';
-import logger from '../../utils/logging/winston-config';
 import { OptionalParseIntPipe } from '../../pipes/optional-number.pipe';
 
 @ApiTags('Movie')

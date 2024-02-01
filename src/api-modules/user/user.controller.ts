@@ -1,12 +1,14 @@
-import { Controller, Get, Param, ParseIntPipe, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Put, Param, ParseIntPipe, UseGuards, BadRequestException } from '@nestjs/common';
 import { JwtGuard } from '../auth/guard';
 import { GetUser } from '../auth/decorator';
 import { SafeUser } from '../../types';
 import { JwtAdminGuard } from '../auth/guard/jwt-admin.guard';
 import { UserService } from './user.service';
 import { SafeUserDto, SafeUserWithRatingsDto, UserMovieRatingDto } from './dto/response';
-import { ApiOperation, ApiResponse, ApiTags, ApiBearerAuth, ApiParam } from '@nestjs/swagger';
+import { ApiOperation, ApiResponse, ApiTags, ApiBearerAuth, ApiParam, ApiBody } from '@nestjs/swagger';
 import { ResponseValidationService } from '../../utility-modules/validation/response-validation.service';
+import { EditUserDto } from './dto/request';
+import { SafeUserWithTokenDto } from './dto/response/safe-user-with-token.dto';
 
 @ApiTags('User')
 @Controller('user')
@@ -46,5 +48,26 @@ export class UserController {
   async getUserById(@Param('id', ParseIntPipe) id: number): Promise<SafeUserWithRatingsDto> {
     const retrievedUser = await this.userService.getUserById(id);
     return await this.responseValidationService.validateResponse(retrievedUser, SafeUserWithRatingsDto);
+  }
+
+  @UseGuards(JwtGuard)
+  @Put('changeProfile')
+  @ApiBearerAuth('access-token')
+  @ApiOperation({ summary: 'Change user profile with properties provided' })
+  @ApiBody({ type: EditUserDto, required: true })
+  @ApiResponse({ status: 200, description: 'Changed user profile', type: SafeUserWithTokenDto })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  async changeProfile(@Body() dto: EditUserDto, @GetUser('id') userId: number): Promise<SafeUserWithTokenDto> {
+    // Check if all properties are undefined
+    if (
+      Object.values(dto).every((value) => {
+        value === undefined;
+      })
+    ) {
+      throw new BadRequestException('No properties provided');
+    }
+
+    const result = await this.userService.changeProfile(dto, userId);
+    return await this.responseValidationService.validateResponse(result, SafeUserWithTokenDto);
   }
 }

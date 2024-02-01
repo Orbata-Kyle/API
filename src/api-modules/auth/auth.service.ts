@@ -64,6 +64,7 @@ export class AuthService {
     const payload = {
       sub: userId,
       email,
+      iat: Date.now(),
     };
     const secret = this.config.get('JWT_SECRET');
 
