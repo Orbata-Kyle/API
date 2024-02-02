@@ -194,11 +194,9 @@ export class TournamentGraph {
   }
 
   hasCycle(): boolean {
-    // Same as checkPotentialMatchup but for all edges
-    const visited = new Set<number>();
-
     for (const [winnerId, losers] of this.adjacencyList.entries()) {
       for (const loserId of losers) {
+        const visited = new Set<number>(); // Reset visited set for each dfs call
         if (this.dfs(loserId, winnerId, visited, this.adjacencyList)) {
           return true;
         }
@@ -214,7 +212,12 @@ export class TournamentGraph {
     }
 
     const scores = new Map<number, number>();
-    this.adjacencyList.forEach((_, movieId) => scores.set(movieId, 1000)); // Initialize scores
+    this.adjacencyList.forEach((loserIds, movieId) => {
+      scores.set(movieId, 1000);
+      loserIds.forEach((loserId) => {
+        scores.set(loserId, 1000);
+      });
+    }); // Initialize scores
 
     const MAX_ITERATIONS = this.adjacencyList.size * 100;
     let iterationCount = 0;
@@ -242,6 +245,7 @@ export class TournamentGraph {
     } while (hasChanges && iterationCount < MAX_ITERATIONS);
 
     this.ranks = this.convertScoresToRanks(scores);
+
     this.newPreference = false;
     return this.ranks;
   }
@@ -249,7 +253,7 @@ export class TournamentGraph {
   // --------------------- Helper methods for computing rankings ---------------------
 
   private adjustScores(winnerId: number, loserId: number, scores: Map<number, number>): boolean {
-    const upsetFactor = 1.5;
+    const upsetFactor = 3;
     const winnerScore = scores.get(winnerId);
     const loserScore = scores.get(loserId);
     let scoreChanged = false;

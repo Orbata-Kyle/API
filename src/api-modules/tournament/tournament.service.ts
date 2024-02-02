@@ -92,7 +92,7 @@ export class TournamentService {
 
     // DB second, which can be tricky as impermanent change of graph made before permanent change to db
     try {
-      await this.removeMovieRankings(userId, movieId, liked ? 'liked' : 'disliked', liked ? 'liked' : 'disliked', true);
+      await this.removeMovieRankingsInDb(userId, movieId, liked ? 'liked' : 'disliked');
 
       await this.addTournamentRankToDatabase(userId, aboveMovieId, movieId, liked, true);
       await this.addTournamentRankToDatabase(userId, movieId, belowMovieId, liked, true);
@@ -115,9 +115,9 @@ export class TournamentService {
     return 'Successfully forced movie placement';
   }
 
-  async removeMovieRankings(userId: number, movieId: number, prevInteractionStatus: string, newInteractionStatus: string, force = false) {
+  async removeMovieRankingsEverywhere(userId: number, movieId: number, prevInteractionStatus: string, newInteractionStatus: string) {
     if (prevInteractionStatus !== 'liked' && prevInteractionStatus !== 'disliked') return;
-    if (newInteractionStatus === prevInteractionStatus && !force) return;
+    if (newInteractionStatus === prevInteractionStatus) return;
 
     // Get all matchups with this movie
     const matchups = await this.prismaService.tournamentRating.findMany({
@@ -141,13 +141,18 @@ export class TournamentService {
       where: { userId, interactionStatus: prevInteractionStatus, OR: [{ movie1Id: movieId }, { movie2Id: movieId }] },
     });
 
-    if (!force) {
-      logger.info(
-        `Removed ${matchups.length} matchups for user ${userId} with movie ${movieId} as interactionStatus changed from ${prevInteractionStatus} to ${newInteractionStatus}`,
-      );
-    } else {
-      logger.info(`Removed ${matchups.length} matchups for user ${userId} with movie ${movieId} with force`);
-    }
+    logger.info(
+      `Removed ${matchups.length} matchups for user ${userId} with movie ${movieId} as interactionStatus changed from ${prevInteractionStatus} to ${newInteractionStatus}`,
+    );
+  }
+
+  async removeMovieRankingsInDb(userId: number, movieId: number, prevInteractionStatus: string) {
+    // Remove all matchups with this movie
+    const matchups = await this.prismaService.tournamentRating.deleteMany({
+      where: { userId, interactionStatus: prevInteractionStatus, OR: [{ movie1Id: movieId }, { movie2Id: movieId }] },
+    });
+
+    logger.info(`Removed ${matchups.count} matchups for user ${userId} with movie ${movieId} from db with force`);
   }
 
   private async findMatchupMovies(liked: boolean, userId: number): Promise<Movie[]> {
