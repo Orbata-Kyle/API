@@ -244,7 +244,14 @@ export class TheMovieDb {
 
     const results: Prisma.MovieCreateInput[] = [];
     response.data.results.forEach((movie) => {
+      // If date invalid or if voteAverage/voteCount/popularity are undefined, skip
+      if (!movie.release_date || !movie.vote_average || !movie.vote_count || !movie.popularity) {
+        return;
+      }
       if (onlyReleased && new Date(movie.release_date) > new Date()) {
+        return;
+      }
+      if (movie.vote_count < 200) {
         return;
       }
       results.push(this.toPrismaMovieCreateInput(movie));
@@ -266,7 +273,13 @@ export class TheMovieDb {
 
     const results: Prisma.MovieCreateInput[] = [];
     response.data.results.forEach((movie) => {
+      if (!movie.release_date || !movie.vote_average || !movie.vote_count || !movie.popularity) {
+        return;
+      }
       if (onlyReleased && new Date(movie.release_date) > new Date()) {
+        return;
+      }
+      if (movie.vote_count < 200) {
         return;
       }
       results.push(this.toPrismaMovieCreateInput(movie));

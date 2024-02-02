@@ -24,7 +24,7 @@ export class SwipeService {
       !this.popularMoviesCacheLastFetched ||
       now.getTime() - this.popularMoviesCacheLastFetched.getTime() > tvelveHours
     ) {
-      this.popularMoviesCache.set(page, await this.movieCache.getPopularMovies(page));
+      this.popularMoviesCache.set(page, await this.movieCache.getPopularMovies(page, true));
       this.popularMoviesCacheLastFetched = now;
     }
   }
@@ -38,7 +38,7 @@ export class SwipeService {
       !this.topRatedMoviesCacheLastFetched ||
       now.getTime() - this.topRatedMoviesCacheLastFetched.getTime() > tvelveHours
     ) {
-      this.topRatedMoviesCache.set(page, await this.movieCache.getTopRatedMovies(page));
+      this.topRatedMoviesCache.set(page, await this.movieCache.getTopRatedMovies(page, true));
       this.topRatedMoviesCacheLastFetched = now;
     }
   }
@@ -100,16 +100,19 @@ export class SwipeService {
     // Get by top rated then
     let topRatedPage = 1;
     let popularPage = 1;
+    const moviesRatedByOthersCount = filteredMovies.length;
 
     // Iterate pages of top rated movies (popular if it runs out) and add to return list until we have at least 40 movies
     while (filteredMovies.length <= 40) {
-      // Got rid of randomness for the popular movies for now because not wanted,
-      // getRelevantMovies still supports it for the time being if needed and will return popular ones in case we run out of top rated ones (highly unlikely)
+      // Let random chance decide whether to get a movie from popular or top rated
+      // Popular movies bring in more variety, top rated movies bring in more quality
+      const fromPopularMovies = Math.random() < 0.55;
+
       const {
         movies: relevantMovieList,
         popularPage: updatedPopularPage,
         topRatedPage: updatedTopRatedPage,
-      } = await this.getRelevantMovies(false, popularPage, topRatedPage);
+      } = await this.getRelevantMovies(fromPopularMovies, popularPage, topRatedPage);
       topRatedPage = updatedTopRatedPage;
       popularPage = updatedPopularPage;
 
@@ -133,6 +136,17 @@ export class SwipeService {
           return !alreadyWatchedMovieIds.has(movie.id) && !ratedByOthersGroupedMap.has(movie.id);
         }),
       );
+    }
+
+    // Shuffle the list of movies coming after moviesRatedByOthers in filteredMovies,
+    // if there are any and if they are less than the total number of movies - 5 (arbitrary, as one getRelevantMovies call returns 20 movies and we just want to shuffle top rated and popular together)
+    if (moviesRatedByOthersCount < filteredMovies.length - 5) {
+      const moviesToShuffle = filteredMovies.slice(moviesRatedByOthersCount);
+      for (let i = moviesToShuffle.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [moviesToShuffle[i], moviesToShuffle[j]] = [moviesToShuffle[j], moviesToShuffle[i]];
+      }
+      filteredMovies = filteredMovies.slice(0, moviesRatedByOthersCount).concat(moviesToShuffle);
     }
 
     return filteredMovies;
