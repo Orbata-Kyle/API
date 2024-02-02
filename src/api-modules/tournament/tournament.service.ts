@@ -86,7 +86,13 @@ export class TournamentService {
     return { interactionStatus: liked ? 'liked' : 'disliked', movies };
   }
 
-  async forceMoviePlacement(userId: number, movieId: number, aboveMovieId: number, belowMovieId: number, liked: boolean): Promise<string> {
+  async forceMoviePlacement(
+    userId: number,
+    movieId: number,
+    aboveMovieId: number | undefined,
+    belowMovieId: number | undefined,
+    liked: boolean,
+  ): Promise<string> {
     // Have to do graph first, to see if there will be cycles
     const newEdges = await this.tournamentGraphService.forceMoviePlacement(userId, movieId, aboveMovieId, belowMovieId, liked);
 
@@ -94,8 +100,8 @@ export class TournamentService {
     try {
       await this.removeMovieRankingsInDb(userId, movieId, liked ? 'liked' : 'disliked');
 
-      await this.addTournamentRankToDatabase(userId, aboveMovieId, movieId, liked, true);
-      await this.addTournamentRankToDatabase(userId, movieId, belowMovieId, liked, true);
+      if (aboveMovieId) await this.addTournamentRankToDatabase(userId, aboveMovieId, movieId, liked, true);
+      if (belowMovieId) await this.addTournamentRankToDatabase(userId, movieId, belowMovieId, liked, true);
 
       // Add new edges to graph that were created by the forceMoviePlacement method to avoid data loss
       // all transitive connections that were severed to be restored without now the middleman movieId in between

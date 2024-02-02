@@ -83,8 +83,8 @@ export class TournamentGraphService {
   async forceMoviePlacement(
     userId: number,
     movieId: number,
-    aboveMovieId: number,
-    belowMovieId: number,
+    aboveMovieId: number | undefined,
+    belowMovieId: number | undefined,
     liked: boolean,
   ): Promise<[number, number][]> {
     const userGraph = liked ? await this.cache.getLikeGraphForUser(userId) : await this.cache.getDislikedGraphForUser(userId);

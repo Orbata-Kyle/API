@@ -121,6 +121,7 @@ export class TournamentController {
   @ApiResponse({
     status: 400,
     description:
+      `**Invalid Body**: Both aboveMovieId and belowMovieId cannot be undefined.\n\n` +
       `**Invalid Interaction Status**: The provided interactionStatus is invalid.\n\n` +
       `**Invalid Movie IDs**: AboveMovieId and belowMovieId cannot be the same and cannot be the same as movieId.\n\n` +
       `**Ranking Requirements**: AboveMovieId and belowMovieId must have been ranked already and have the same interactionStatus as in request.\n\n` +
@@ -132,19 +133,35 @@ export class TournamentController {
     @GetUser('id') userId: number,
     @Param('interactionStatus', new ValidateSeenInteractionStatus()) interactionStatus: string,
   ): Promise<string> {
+    if (dto.aboveMovieId === undefined && dto.belowMovieId === undefined) {
+      throw new BadRequestException('Both aboveMovieId and belowMovieId cannot be undefined');
+    }
+
     // Make sure aboveMovieId and belowMovieId are not the same and that they are not the same as movieId
-    if (dto.aboveMovieId === dto.belowMovieId || dto.aboveMovieId === dto.movieId || dto.belowMovieId === dto.movieId) {
+    if (
+      dto.aboveMovieId &&
+      dto.belowMovieId &&
+      (dto.aboveMovieId === dto.belowMovieId || dto.aboveMovieId === dto.movieId || dto.belowMovieId === dto.movieId)
+    ) {
       throw new BadRequestException('aboveMovieId and belowMovieId cannot be the same and cannot be the same as movieId');
     }
     // Make sure aboveMovieId and belowMovieId are same interactionStatus and there are individual rankings for both
-    const aboveMovie = await this.prismaService.tournamentRating.findFirst({
-      where: { userId, interactionStatus: interactionStatus, OR: [{ movie1Id: dto.aboveMovieId }, { movie2Id: dto.aboveMovieId }] },
-    });
-    const belowMovie = await this.prismaService.tournamentRating.findFirst({
-      where: { userId, interactionStatus: interactionStatus, OR: [{ movie1Id: dto.belowMovieId }, { movie2Id: dto.belowMovieId }] },
-    });
-    if (!aboveMovie || !belowMovie) {
-      throw new BadRequestException(`aboveMovieId and belowMovieId must have been ranked already and have interactionStatus status`);
+    if (dto.aboveMovieId) {
+      const aboveMovie = await this.prismaService.tournamentRating.findFirst({
+        where: { userId, interactionStatus: interactionStatus, OR: [{ movie1Id: dto.aboveMovieId }, { movie2Id: dto.aboveMovieId }] },
+      });
+      if (!aboveMovie) {
+        throw new BadRequestException(`aboveMovieId must have been ranked already and have interactionStatus status`);
+      }
+    }
+
+    if (dto.belowMovieId) {
+      const belowMovie = await this.prismaService.tournamentRating.findFirst({
+        where: { userId, interactionStatus: interactionStatus, OR: [{ movie1Id: dto.belowMovieId }, { movie2Id: dto.belowMovieId }] },
+      });
+      if (!belowMovie) {
+        throw new BadRequestException(`belowMovieId must have been ranked already and have interactionStatus status`);
+      }
     }
 
     return this.tournamentService.forceMoviePlacement(

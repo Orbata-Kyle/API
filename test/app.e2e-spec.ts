@@ -511,17 +511,6 @@ describe('App e2e', () => {
           Authorization: 'Bearer $S{user2At}',
         })
         .expectStatus(200)
-        .expectJsonLike([
-          {
-            id: 13,
-          },
-          {
-            id: 100,
-          },
-          {
-            id: 102,
-          },
-        ])
         .toss()
         .then((res) => {
           responseBody = res.body;
@@ -530,6 +519,11 @@ describe('App e2e', () => {
       expect(responseBody.length).toBeGreaterThanOrEqual(40);
 
       for (let i = 0; i < responseBody.length; i++) {
+        if (i === 0 || i === 1) {
+          if (responseBody[i].id !== 100 && responseBody[i].id !== 102) {
+            throw new Error('Movies rated by user not 1 at the start of the list');
+          }
+        }
         for (let j = i + 1; j < responseBody.length; j++) {
           if (responseBody[i].id === responseBody[j].id) {
             throw new Error('Duplicate movie found');
@@ -1103,6 +1097,99 @@ describe('App e2e', () => {
           .expectStatus(200)
           .expectBodyContains('false');
       });
+
+      it('Should force movie rank to top', async () => {
+        let responseBody;
+        await pactum
+          .spec()
+          .get('/tournament/rankings/disliked')
+          .withHeaders({
+            Authorization: 'Bearer $S{userAt}',
+          })
+          .expectStatus(200)
+          .toss()
+          .then((res) => {
+            responseBody = res.body;
+          });
+
+        const belowMovieId = responseBody[0].id;
+        const movie = responseBody.find((m) => m.rank === (responseBody.length - 1).toString());
+        const movieId = movie.id;
+
+        await pactum
+          .spec()
+          .put('/tournament/forceMoviePlacement/disliked')
+          .withHeaders({
+            Authorization: 'Bearer $S{userAt}',
+          })
+          .withBody({
+            movieId,
+            belowMovieId,
+          })
+          .expectStatus(200);
+
+        await pactum
+          .spec()
+          .get('/tournament/rankings/disliked')
+          .withHeaders({
+            Authorization: 'Bearer $S{userAt}',
+          })
+          .expectStatus(200)
+          .toss()
+          .then((res) => {
+            responseBody = res.body;
+          });
+
+        if (responseBody[0].id !== movieId) {
+          throw new Error(`Movie ${movieId} is not at the top`);
+        }
+      });
+
+      it('Should force movie rank to bottom', async () => {
+        let responseBody;
+        await pactum
+          .spec()
+          .get('/tournament/rankings/disliked')
+          .withHeaders({
+            Authorization: 'Bearer $S{userAt}',
+          })
+          .expectStatus(200)
+          .toss()
+          .then((res) => {
+            responseBody = res.body;
+          });
+
+        const aboveMovieId = responseBody[responseBody.length - 1].id;
+        const movieId = responseBody[0].id;
+
+        await pactum
+          .spec()
+          .put('/tournament/forceMoviePlacement/disliked')
+          .withHeaders({
+            Authorization: 'Bearer $S{userAt}',
+          })
+          .withBody({
+            movieId,
+            aboveMovieId,
+          })
+          .expectStatus(200);
+
+        await pactum
+          .spec()
+          .get('/tournament/rankings/disliked')
+          .withHeaders({
+            Authorization: 'Bearer $S{userAt}',
+          })
+          .expectStatus(200)
+          .toss()
+          .then((res) => {
+            responseBody = res.body;
+          });
+
+        if (responseBody[responseBody.length - 1].id !== movieId) {
+          throw new Error(`Movie ${movieId} is not at the bottom`);
+        }
+      });
     });
   });
 
@@ -1135,6 +1222,186 @@ describe('App e2e', () => {
         // await assertRecommendationExistsInDb(responseBody.movies[i].id);
         // ^cannot do this if not awaiting the prsima insert in the cache service, maybe once theres other tests after this
         await assertUserMovieRatingDoesntExistsInDb(responseBody.movies[i].id);
+      }
+    });
+  });
+
+  describe('Advanced Ranking', () => {
+    it('Should prepare setting by deleting all previous related data', async () => {
+      await prisma.tournamentRating.deleteMany();
+      await prisma.userMovieRating.deleteMany();
+    });
+
+    it('Should like 20 movies', async () => {
+      await rateMovie('300', 'liked');
+      await rateMovie('301', 'liked');
+      await rateMovie('302', 'liked');
+      await rateMovie('303', 'liked');
+      await rateMovie('306', 'liked');
+      await rateMovie('307', 'liked');
+      await rateMovie('308', 'liked');
+      await rateMovie('309', 'liked');
+      await rateMovie('310', 'liked');
+      await rateMovie('311', 'liked');
+      await rateMovie('312', 'liked');
+      await rateMovie('312', 'liked');
+      await rateMovie('313', 'liked');
+      await rateMovie('314', 'liked');
+      await rateMovie('315', 'liked');
+      await rateMovie('316', 'liked');
+      await rateMovie('317', 'liked');
+      await rateMovie('318', 'liked');
+      await rateMovie('319', 'liked');
+      await rateMovie('320', 'liked');
+    });
+
+    it('Should follow rating them by using pre-defined pattern', async () => {
+      let response = await getMatchupResponse();
+      while (response.movies.length > 0) {
+        const winnerId = response.movies[0].id > response.movies[1].id ? response.movies[0].id : response.movies[1].id;
+        const loserId = response.movies[0].id < response.movies[1].id ? response.movies[0].id : response.movies[1].id;
+        await playOutTournamentMatchup(winnerId, loserId);
+        response = await getMatchupResponse();
+      }
+    });
+
+    it('Should drag around a bit', async () => {
+      await pactum
+        .spec()
+        .put('/tournament/forceMoviePlacement/liked')
+        .withHeaders({
+          Authorization: 'Bearer $S{userAt}',
+        })
+        .withBody({
+          movieId: 300,
+          aboveMovieId: 308,
+          belowMovieId: 307,
+        })
+        .expectStatus(200);
+
+      await pactum
+        .spec()
+        .put('/tournament/forceMoviePlacement/liked')
+        .withHeaders({
+          Authorization: 'Bearer $S{userAt}',
+        })
+        .withBody({
+          movieId: 307,
+          aboveMovieId: 313,
+          belowMovieId: 312,
+        })
+        .expectStatus(200);
+
+      await pactum
+        .spec()
+        .put('/tournament/forceMoviePlacement/liked')
+        .withHeaders({
+          Authorization: 'Bearer $S{userAt}',
+        })
+        .withBody({
+          movieId: 319,
+          aboveMovieId: 313,
+          belowMovieId: 312,
+        })
+        .expectStatus(200);
+
+      // And now back
+      await pactum
+        .spec()
+        .put('/tournament/forceMoviePlacement/liked')
+        .withHeaders({
+          Authorization: 'Bearer $S{userAt}',
+        })
+        .withBody({
+          movieId: 307,
+          aboveMovieId: 308,
+          belowMovieId: 306,
+        })
+        .expectStatus(200);
+
+      await pactum
+        .spec()
+        .put('/tournament/forceMoviePlacement/liked')
+        .withHeaders({
+          Authorization: 'Bearer $S{userAt}',
+        })
+        .withBody({
+          movieId: 300,
+          aboveMovieId: 301,
+        })
+        .expectStatus(200);
+
+      await pactum
+        .spec()
+        .put('/tournament/forceMoviePlacement/liked')
+        .withHeaders({
+          Authorization: 'Bearer $S{userAt}',
+        })
+        .withBody({
+          movieId: 319,
+          aboveMovieId: 320,
+          belowMovieId: 318,
+        })
+        .expectStatus(200);
+    });
+
+    it('Should like new movies and rank again, then move around', async () => {
+      await rateMovie('321', 'liked');
+      await rateMovie('322', 'liked');
+      await rateMovie('326', 'liked');
+      await rateMovie('327', 'liked');
+
+      let response = await getMatchupResponse();
+      while (response.movies.length > 0) {
+        const winnerId = response.movies[0].id > response.movies[1].id ? response.movies[0].id : response.movies[1].id;
+        const loserId = response.movies[0].id < response.movies[1].id ? response.movies[0].id : response.movies[1].id;
+        await playOutTournamentMatchup(winnerId, loserId);
+        response = await getMatchupResponse();
+      }
+
+      await pactum
+        .spec()
+        .put('/tournament/forceMoviePlacement/liked')
+        .withHeaders({
+          Authorization: 'Bearer $S{userAt}',
+        })
+        .withBody({
+          movieId: 327,
+          aboveMovieId: 300,
+        })
+        .expectStatus(200);
+
+      await pactum
+        .spec()
+        .put('/tournament/forceMoviePlacement/liked')
+        .withHeaders({
+          Authorization: 'Bearer $S{userAt}',
+        })
+        .withBody({
+          movieId: 327,
+          belowMovieId: 326,
+        })
+        .expectStatus(200);
+    });
+
+    it('Should confirm that linked rankings are id desc', async () => {
+      let responseBody;
+      await pactum
+        .spec()
+        .get('/tournament/rankings/liked')
+        .withHeaders({
+          Authorization: 'Bearer $S{userAt}',
+        })
+        .expectStatus(200)
+        .toss()
+        .then((res) => {
+          responseBody = res.body;
+        });
+
+      for (let i = 1; i < responseBody.length; i++) {
+        if (Number(responseBody[i].id) > Number(responseBody[i - 1].id)) {
+          throw new Error('Rankings are not in order');
+        }
       }
     });
   });

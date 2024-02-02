@@ -91,7 +91,7 @@ export class TournamentGraph {
     }
   }
 
-  forceMoviePlacement(movieId: number, aboveMovieId: number, belowMovieId: number): [number, number][] {
+  forceMoviePlacement(movieId: number, aboveMovieId: number | undefined, belowMovieId: number | undefined): [number, number][] {
     // Save all movieIds that won over moveiId and all movieIds that movieId won over
     const movieIdsThatWonOverMovieId = new Set<number>();
     const movieIdsThatMovieIdWonOver = new Set<number>();
@@ -110,13 +110,15 @@ export class TournamentGraph {
     this.adjacencyList.forEach((edges) => edges.delete(movieId));
 
     // Add edge from the movie it is placed under
-    if (!this.adjacencyList.has(aboveMovieId)) {
-      this.adjacencyList.set(aboveMovieId, new Set());
+    if (aboveMovieId) {
+      if (!this.adjacencyList.has(aboveMovieId)) {
+        this.adjacencyList.set(aboveMovieId, new Set());
+      }
+      this.adjacencyList.get(aboveMovieId)!.add(movieId);
     }
-    this.adjacencyList.get(aboveMovieId)!.add(movieId);
 
     // Add edge from the movie to the one it is placed above
-    this.adjacencyList.get(movieId)!.add(belowMovieId);
+    if (belowMovieId) this.adjacencyList.get(movieId)!.add(belowMovieId);
 
     const newEdges: [number, number][] = [];
     // Point all movieIdsThatWonOverMovieId to all movieIdsThatMovieIdWonOver to preserve this data
