@@ -1,4 +1,4 @@
-import { Body, Controller, HttpCode, HttpStatus, Post } from '@nestjs/common';
+import { BadRequestException, Body, Controller, HttpCode, HttpStatus, Post } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { AuthDto, AuthSigninDto } from './dto/request';
 import { AuthResponseDto } from './dto/response';
@@ -13,9 +13,15 @@ export class AuthController {
   @Post('signup')
   @ApiOperation({ summary: 'User Signup' })
   @ApiResponse({ status: 201, description: 'User successfully registered', type: AuthResponseDto })
+  @ApiResponse({ status: 400, description: 'Bad Request' })
   @ApiResponse({ status: 403, description: 'Forbidden - Email already taken' })
   @ApiBody({ type: AuthDto, required: true })
   async signup(@Body() dto: AuthDto): Promise<AuthResponseDto> {
+    const possibleGenders = ['Woman', 'Man', 'Transgender', 'Non-binary', 'Other', 'Prefer not to say'];
+    if (dto.gender && !possibleGenders.includes(dto.gender)) {
+      throw new BadRequestException(`Gender not one of ${possibleGenders}`);
+    }
+
     const result = await this.authService.signup(dto);
     return this.responseValidationService.validateResponse(result, AuthResponseDto);
   }

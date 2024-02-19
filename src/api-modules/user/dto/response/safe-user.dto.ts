@@ -1,25 +1,11 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { IsBoolean, IsDate, IsEmail, IsInt, IsNotEmpty, IsString } from 'class-validator';
+import { ApiProperty, OmitType } from '@nestjs/swagger';
+import { IsBoolean, IsDate, IsInt } from 'class-validator';
+import { AuthDto } from '../../../../api-modules/auth/dto/request';
 
-export class SafeUserDto {
+export class SafeUserDto extends OmitType(AuthDto, ['password'] as const) {
   @IsInt()
   @ApiProperty({ type: Number, example: 1 })
   id: number;
-
-  @IsString()
-  @IsNotEmpty()
-  @ApiProperty({ type: String, example: 'John' })
-  firstName: string;
-
-  @IsString()
-  @IsNotEmpty()
-  @ApiProperty({ type: String, example: 'Doe' })
-  lastName: string;
-
-  @IsString()
-  @IsEmail()
-  @ApiProperty({ type: String, example: 'user@example.com' })
-  email: string;
 
   @IsBoolean()
   @ApiProperty({ type: Boolean, example: false })

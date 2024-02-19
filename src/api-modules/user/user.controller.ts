@@ -56,6 +56,7 @@ export class UserController {
   @ApiOperation({ summary: 'Change user profile with properties provided' })
   @ApiBody({ type: EditUserDto, required: true })
   @ApiResponse({ status: 200, description: 'Changed user profile', type: SafeUserWithTokenDto })
+  @ApiResponse({ status: 400, description: 'Bad Request' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   async changeProfile(@Body() dto: EditUserDto, @GetUser('id') userId: number): Promise<SafeUserWithTokenDto> {
     // Check if all properties are undefined

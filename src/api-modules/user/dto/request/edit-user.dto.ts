@@ -1,7 +1,9 @@
-import { IsEmail, IsOptional, IsString } from 'class-validator';
-import { ApiPropertyOptional } from '@nestjs/swagger';
+import { IsDateString, IsEmail, IsMobilePhone, IsOptional, IsString } from 'class-validator';
+import { ApiPropertyOptional, OmitType } from '@nestjs/swagger';
+import { AuthDto } from '../../../../api-modules/auth/dto/request';
 
-export class EditUserDto {
+// The omitted props are the ones that were normally mandatory in the AuthDto, but are now optional in the EditUserDto
+export class EditUserDto extends OmitType(AuthDto, ['password', 'email', 'lastName', 'firstName'] as const) {
   @IsEmail()
   @IsOptional()
   @ApiPropertyOptional({ type: String, example: 'user@example.com', description: 'User email' })

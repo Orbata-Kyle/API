@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../utility-modules/prisma/prisma.service';
 import { SafeUser } from '../../types';
 import logger from '../../utils/logging/winston-config';
@@ -52,6 +52,10 @@ export class UserService {
       lastName: undefined,
       hash: undefined,
       email: undefined,
+      birthDate: undefined,
+      phoneNumber: undefined,
+      gender: undefined,
+      country: undefined,
     };
     let newAccessToken: string;
 
@@ -80,15 +84,50 @@ export class UserService {
     if (dto.email) {
       updatedUser.email = dto.email;
     }
+    if (dto.birthDate) {
+      updatedUser.birthDate = new Date(dto.birthDate);
+    }
+    if (dto.phoneNumber) {
+      updatedUser.phoneNumber = dto.phoneNumber;
+    }
+    if (dto.gender) {
+      const possibleGenders = ['Woman', 'Man', 'Transgender', 'Non-binary', 'Other', 'Prefer not to say'];
+      if (!possibleGenders.includes(dto.gender)) {
+        throw new BadRequestException(`Gender not one of ${possibleGenders}`);
+      }
+      updatedUser.gender = dto.gender;
+    }
+    if (dto.country) {
+      updatedUser.country = dto.country;
+    }
 
-    const user = await this.prisma.user.update({ where: { id: userId }, data: { ...updatedUser } });
+    let user;
+    try {
+      user = await this.prisma.user.update({ where: { id: userId }, data: { ...updatedUser } });
+    } catch (error) {
+      if (error.constructor.name === 'PrismaClientKnownRequestError') {
+        if (error.code === 'P2002') {
+          throw new BadRequestException('Email taken');
+        }
+      }
+      throw error;
+    }
     logger.info(`User ${userId} profile changed`);
 
     delete user.hash;
-    return {
-      ...user,
-      access_token: newAccessToken,
-    };
+
+    if (user.birthDate) {
+      return {
+        ...user,
+        birthDate: user.birthDate.toISOString(),
+        access_token: newAccessToken,
+      };
+    } else {
+      return {
+        ...user,
+        access_token: newAccessToken,
+      };
+    }
   }
 
   async deleteUser(userId: number): Promise<void> {

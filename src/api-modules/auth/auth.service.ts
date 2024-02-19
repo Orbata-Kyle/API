@@ -20,6 +20,10 @@ export class AuthService {
           email: dto.email,
           firstName: dto.firstName,
           lastName: dto.lastName,
+          birthDate: dto.birthDate ? new Date(dto.birthDate) : undefined,
+          phoneNumber: dto.phoneNumber,
+          gender: dto.gender,
+          country: dto.country,
           hash,
         },
       });
@@ -28,7 +32,12 @@ export class AuthService {
 
       const returnObj = { ...user, access_token: (await this.signToken(user.id, user.email)).access_token };
       delete returnObj.hash;
-      return returnObj;
+
+      if (returnObj.birthDate) {
+        return { ...returnObj, birthDate: returnObj.birthDate.toISOString() };
+      } else {
+        return returnObj;
+      }
     } catch (error) {
       if (error.constructor.name === 'PrismaClientKnownRequestError') {
         if (error.code === 'P2002') {
@@ -57,7 +66,12 @@ export class AuthService {
     logger.info(`User ${user.email} with id ${user.id} logged in`);
     const returnObj = { ...user, access_token: (await this.signToken(user.id, user.email)).access_token };
     delete returnObj.hash;
-    return returnObj;
+
+    if (returnObj.birthDate) {
+      return { ...returnObj, birthDate: returnObj.birthDate.toISOString() };
+    } else {
+      return returnObj;
+    }
   }
 
   async signToken(userId: number, email: string): Promise<{ access_token: string }> {

@@ -1,4 +1,4 @@
-import { IsBoolean, IsDate, IsNumber, IsOptional, IsString, IsUrl, Validate, ValidateNested } from 'class-validator';
+import { IsBoolean, IsDate, IsNumber, IsOptional, IsString, IsUrl, ValidateNested } from 'class-validator';
 import { MovieDto } from './movie.dto';
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';

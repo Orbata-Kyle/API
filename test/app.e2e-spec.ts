@@ -416,6 +416,59 @@ describe('App e2e', () => {
           });
       });
 
+      it('Should add optional info', async () => {
+        await pactum
+          .spec()
+          .put('/user/changeProfile')
+          .withHeaders({
+            Authorization: 'Bearer $S{userAt}',
+          })
+          .withBody({
+            birthDate: '2023-01-01T00:00:00.000Z',
+            phoneNumber: '+4915777765590',
+            gender: 'Man',
+            country: 'US',
+          })
+          .expectStatus(200);
+
+        const user = await prisma.user.findUnique({
+          where: {
+            id: userId,
+          },
+        });
+
+        expect(user.birthDate).toBeDefined();
+        expect(user.phoneNumber).toBeDefined();
+        expect(user.gender).toBeDefined();
+        expect(user.country).toBeDefined();
+      });
+
+      it('Should throw if invalid phone', () => {
+        return pactum
+          .spec()
+          .put('/user/changeProfile')
+          .withHeaders({
+            Authorization: 'Bearer $S{userAt}',
+          })
+          .withBody({
+            phoneNumber: '+1234567890',
+          })
+          .expectStatus(400);
+      });
+
+      it('Should throw if invalid birthDate', () => {
+        return pactum
+          .spec()
+          .put('/user/changeProfile')
+          .withHeaders({
+            Authorization: 'Bearer $S{userAt}',
+          })
+          .withBody({
+            birthDate: 'asd',
+          })
+          .expectStatus(400);
+      });
+
       it('Should change password and invalidate previous sessions', async () => {
         const previousAccessToken = pactum.stash.getDataStore()['userAt'];
 
