@@ -133,7 +133,7 @@ model MovieDetails {
   movieId Int
   movie   Movie   @relation(fields: [movieId], references: [id], onDelete: Cascade)
 
-  updatedAt               DateTime              @updatedAt @default(now()) // TODO remove default
+  updatedAt               DateTime              @updatedAt
   createdAt               DateTime              @default(now())
 
   @@unique([movieId])
@@ -192,7 +192,7 @@ model UserMovieRating {
   movie             Movie   @relation(fields: [movieId], references: [id], onDelete: Cascade)
   user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  updatedAt               DateTime              @updatedAt @default(now())  // TODO remove default
+  updatedAt               DateTime              @updatedAt
   createdAt               DateTime              @default(now())
 
   @@unique([userId, movieId])
@@ -211,7 +211,7 @@ model TournamentRating {
   movie1            Movie   @relation(fields: [movie1Id], references: [id], name: "movie1", onDelete: Cascade)
   movie2            Movie   @relation(fields: [movie2Id], references: [id], name: "movie2", onDelete: Cascade)
 
-  updatedAt               DateTime              @updatedAt @default(now()) // TODO remove default
+  updatedAt               DateTime              @updatedAt
   createdAt               DateTime              @default(now())
 
   @@unique([userId, movie1Id, movie2Id])
