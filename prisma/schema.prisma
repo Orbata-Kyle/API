@@ -133,7 +133,7 @@ model MovieDetails {
   movieId Int
   movie   Movie   @relation(fields: [movieId], references: [id], onDelete: Cascade)
 
-  updatedAt               DateTime              @updatedAt
+  updatedAt               DateTime              @updatedAt @default(now()) // TODO remove default
   createdAt               DateTime              @default(now())
 
   @@unique([movieId])
