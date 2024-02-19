@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Put, Param, ParseIntPipe, UseGuards, BadRequestException } from '@nestjs/common';
+import { Body, Controller, Get, Put, Param, ParseIntPipe, UseGuards, BadRequestException, Delete } from '@nestjs/common';
 import { JwtGuard } from '../auth/guard';
 import { GetUser } from '../auth/decorator';
 import { SafeUser } from '../../types';
@@ -69,5 +69,15 @@ export class UserController {
 
     const result = await this.userService.changeProfile(dto, userId);
     return await this.responseValidationService.validateResponse(result, SafeUserWithTokenDto);
+  }
+
+  @UseGuards(JwtGuard)
+  @Delete('deleteUser')
+  @ApiBearerAuth('access-token')
+  @ApiOperation({ summary: 'Delete own user profile' })
+  @ApiResponse({ status: 200, description: 'User profile deleted' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  async deleteUser(@GetUser('id') userId: number): Promise<void> {
+    await this.userService.deleteUser(userId);
   }
 }

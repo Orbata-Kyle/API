@@ -90,4 +90,10 @@ export class UserService {
       access_token: newAccessToken,
     };
   }
+
+  async deleteUser(userId: number): Promise<void> {
+    await this.prisma.user.delete({ where: { id: userId } });
+    logger.info(`User ${userId} deleted`);
+    return;
+  }
 }
