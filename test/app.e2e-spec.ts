@@ -484,6 +484,21 @@ describe('App e2e', () => {
             }
           });
       });
+
+      it('undo last swipe and rate again', async () => {
+        await pactum
+          .spec()
+          .put('/swipe/undo')
+          .withHeaders({
+            Authorization: 'Bearer $S{userAt}',
+          })
+          .expectStatus(200)
+          .expectJsonLike({
+            id: movieId,
+          });
+
+        await rateMovie(movieId.toString(), 'liked');
+      });
     });
   });
 
@@ -653,6 +668,28 @@ describe('App e2e', () => {
 
         await assertTournamentRatingExistsInDb(100, 102, 'disliked');
         await assertTournamentRatingDoesntExistsInDb(100, 102, 'liked');
+      });
+
+      it('Should undo last ranking and then rank again', async () => {
+        await pactum
+          .spec()
+          .put('/tournament/rank/undo')
+          .withHeaders({
+            Authorization: 'Bearer $S{userAt}',
+          })
+          .expectStatus(200)
+          .expectJsonLike({
+            movies: [
+              {
+                id: 100,
+              },
+              {
+                id: 102,
+              },
+            ],
+          });
+
+        await playOutTournamentMatchup(100, 102);
       });
 
       it('Should add some more movies to rankings for later', async () => {
@@ -1253,7 +1290,7 @@ describe('App e2e', () => {
       await rateMovie('318', 'liked');
       await rateMovie('319', 'liked');
       await rateMovie('320', 'liked');
-    });
+    }, 10000);
 
     it('Should follow rating them by using pre-defined pattern', async () => {
       let response = await getMatchupResponse();

@@ -172,4 +172,16 @@ export class TournamentController {
       interactionStatus === 'liked',
     );
   }
+
+  @UseGuards(JwtGuard)
+  @Put('rank/undo')
+  @ApiBearerAuth('access-token')
+  @ApiOperation({ summary: 'Undo last Tournament Ranking and return that Matchup' })
+  @ApiResponse({ status: 200, description: 'Last ranking undone', type: MatchupDto })
+  @ApiResponse({ status: 404, description: 'No more rankings to undo' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  async undoLastRanking(@GetUser('id') userId: number): Promise<MatchupDto> {
+    const result = await this.tournamentService.undoLastRanking(userId);
+    return this.responseValidationService.validateResponse(result, MatchupDto);
+  }
 }

@@ -133,7 +133,11 @@ export class SwipeService {
 
       filteredMovies = filteredMovies.concat(
         relevantMovieList.filter((movie) => {
-          return !alreadyWatchedMovieIds.has(movie.id) && !ratedByOthersGroupedMap.has(movie.id);
+          return (
+            !alreadyWatchedMovieIds.has(movie.id) &&
+            !ratedByOthersGroupedMap.has(movie.id) &&
+            !filteredMovies.find((m) => m.id === movie.id)
+          );
         }),
       );
     }
@@ -150,6 +154,31 @@ export class SwipeService {
     }
 
     return filteredMovies;
+  }
+
+  async undoLastSwipe(userId: number): Promise<Movie> {
+    const lastSwipe = await this.prisma.userMovieRating.findFirst({
+      where: {
+        userId,
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+
+    if (!lastSwipe) throw new NotFoundException('No more swipes to undo');
+
+    await this.prisma.userMovieRating.delete({
+      where: {
+        id: lastSwipe.id,
+      },
+    });
+
+    return await this.prisma.movie.findUnique({
+      where: {
+        id: lastSwipe.movieId,
+      },
+    });
   }
 
   private async getRelevantMovies(

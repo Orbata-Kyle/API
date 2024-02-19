@@ -29,10 +29,11 @@ model Movie {
   crew                    Crew[]
   keywords                MovieKeyword[]
   videos                  Video[]
-  updatedAt               DateTime              @updatedAt
-  createdAt               DateTime              @default(now())
   MovieRecommedations     MovieRecommedation[]  @relation("movie")
   RecommendationForMovies MovieRecommedation[]  @relation("recommendationMovie")
+
+  updatedAt               DateTime              @updatedAt
+  createdAt               DateTime              @default(now())
 
   @@index([title])
 }
@@ -132,6 +133,9 @@ model MovieDetails {
   movieId Int
   movie   Movie   @relation(fields: [movieId], references: [id], onDelete: Cascade)
 
+  updatedAt               DateTime              @updatedAt
+  createdAt               DateTime              @default(now())
+
   @@unique([movieId])
 }
 
@@ -174,9 +178,10 @@ model User {
   admin              Boolean              @default(false)
   UserMovieRating    UserMovieRating[]
   UserMoviePairs     TournamentRating[]
+  InvalidUserSession InvalidUserSession[]
+
   updatedAt          DateTime             @updatedAt
   createdAt          DateTime             @default(now())
-  InvalidUserSession InvalidUserSession[]
 }
 
 model UserMovieRating {
@@ -186,6 +191,9 @@ model UserMovieRating {
   interactionStatus String?
   movie             Movie   @relation(fields: [movieId], references: [id], onDelete: Cascade)
   user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  updatedAt               DateTime              @updatedAt @default(now())  // TODO remove default
+  createdAt               DateTime              @default(now())
 
   @@unique([userId, movieId])
   @@index([movieId])
@@ -202,6 +210,9 @@ model TournamentRating {
   user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
   movie1            Movie   @relation(fields: [movie1Id], references: [id], name: "movie1", onDelete: Cascade)
   movie2            Movie   @relation(fields: [movie2Id], references: [id], name: "movie2", onDelete: Cascade)
+
+  updatedAt               DateTime              @updatedAt @default(now()) // TODO remove default
+  createdAt               DateTime              @default(now())
 
   @@unique([userId, movie1Id, movie2Id])
   @@index([userId])

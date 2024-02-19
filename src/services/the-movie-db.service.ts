@@ -111,7 +111,7 @@ export interface MovieCreateInputAndRelations {
   castCreateInputs: Cast[];
   crewCreateInputs: Crew[];
   videosCreateInputs: Omit<Video, 'id'>[];
-  detailsCreateInput: Omit<MovieDetails, 'id'>;
+  detailsCreateInput: Omit<MovieDetails, 'id' | 'createdAt' | 'updatedAt'>;
 }
 
 @Injectable()

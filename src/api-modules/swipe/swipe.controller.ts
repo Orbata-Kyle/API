@@ -1,4 +1,4 @@
-import { Controller, Get, UseGuards } from '@nestjs/common';
+import { Controller, Get, Put, UseGuards } from '@nestjs/common';
 import { GetUser } from '../auth/decorator';
 import { JwtGuard } from '../auth/guard';
 import { SwipeService } from './swipe.service';
@@ -20,5 +20,16 @@ export class SwipeController {
   async getNextMovieToSwipe(@GetUser('id') userId: number): Promise<MovieDto[]> {
     const result = await this.swipeService.getNextMovieToSwipe(userId);
     return await this.responseValidationService.validateArrayResponse(result, MovieDto);
+  }
+
+  @UseGuards(JwtGuard)
+  @Put('undo')
+  @ApiBearerAuth('access-token')
+  @ApiOperation({ summary: 'Undo last swipe and return it' })
+  @ApiResponse({ status: 200, description: 'Last swipe undone', type: MovieDto })
+  @ApiResponse({ status: 404, description: 'No more swipes to undo' })
+  async undoLastSwipe(@GetUser('id') userId: number): Promise<MovieDto> {
+    const result = await this.swipeService.undoLastSwipe(userId);
+    return await this.responseValidationService.validateResponse(result, MovieDto);
   }
 }

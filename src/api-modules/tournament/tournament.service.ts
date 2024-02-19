@@ -1,9 +1,10 @@
-import { BadRequestException, Injectable, InternalServerErrorException } from '@nestjs/common';
+import { BadRequestException, Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../utility-modules/prisma/prisma.service';
 import { TournamentGraphService } from './graph/tournament-graph.service';
 import logger from '../../utils/logging/winston-config';
 import { Movie, TournamentRating } from '@prisma/client';
 import { MovieWithRankDto } from './dto/response/movie-with-rank.dto';
+import { MatchupDto } from './dto/response';
 
 @Injectable()
 export class TournamentService {
@@ -72,7 +73,34 @@ export class TournamentService {
     return 'Successfully ranked movie';
   }
 
-  async getMatchup(userId: number) {
+  async undoLastRanking(userId: number): Promise<MatchupDto> {
+    const lastRating = await this.prismaService.tournamentRating.findFirst({
+      where: { userId },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    if (!lastRating) {
+      throw new NotFoundException('No ratings to undo');
+    }
+
+    await this.prismaService.tournamentRating.delete({
+      where: { id: lastRating.id },
+    });
+
+    await this.tournamentGraphService.findAndRemovePreferenceCombination(
+      userId,
+      lastRating.movie1Id,
+      lastRating.movie2Id,
+      lastRating.interactionStatus === 'liked',
+    );
+
+    const lastMovies = await this.prismaService.movie.findMany({
+      where: { id: { in: [lastRating.movie1Id, lastRating.movie2Id] } },
+    });
+    return { interactionStatus: lastRating.interactionStatus, movies: lastMovies };
+  }
+
+  async getMatchup(userId: number): Promise<MatchupDto> {
     let liked = true;
     let movies = await this.findMatchupMovies(liked, userId);
     if (movies.length === 0) {
