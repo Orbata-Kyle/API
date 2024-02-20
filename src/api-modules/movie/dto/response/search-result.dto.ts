@@ -2,12 +2,13 @@ import { IsNotEmpty, IsNumber, ValidateNested } from 'class-validator';
 import { MovieDto } from './movie.dto';
 import { Type } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
+import { DetailedMovieDto } from './detailed-movie.dto';
 
 export class SeachResultDto {
   @ValidateNested({ each: true })
-  @Type(() => MovieDto)
-  @ApiProperty({ type: [MovieDto], description: 'List of movies in the search' })
-  movies: MovieDto[];
+  @Type(() => DetailedMovieDto)
+  @ApiProperty({ type: [DetailedMovieDto], description: 'List of movies in the search' })
+  movies: DetailedMovieDto[];
 
   @IsNumber()
   @IsNotEmpty()

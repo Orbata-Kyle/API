@@ -69,7 +69,15 @@ export class MovieCacheService implements OnModuleInit {
     const moviesToSave = await this.theMovieDb.searchForMovieByTitle(title, page);
     await this.saveMoviesToDb(moviesToSave);
 
-    const movies = await this.getMoviesFromDb(moviesToSave.map((movie) => movie.id));
+    const movies = [];
+    for (const movie of moviesToSave.map((movie) => movie.id)) {
+      const detailedMovie = await this.getMovieById(movie, true);
+      if ((detailedMovie as any).details[0].runtime < 50) {
+        logger.info(`Skipping movie with id ${movie} because it is too short`);
+        continue;
+      }
+      movies.push(detailedMovie);
+    }
     return movies;
   }
 

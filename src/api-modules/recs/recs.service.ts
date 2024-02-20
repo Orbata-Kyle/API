@@ -55,7 +55,7 @@ export class RecsService {
     const recsMovieInfo = new Map<number, Movie>();
 
     // Only do based on top 10 liked and disliked rankings for now
-    const splicedLikedRankings = userRankingsLiked.splice(0, 10);
+    const splicedLikedRankings = userRankingsLiked.splice(0, 50);
     // const splicedDislikedRankings = userRankingsDisliked.splice(0, 10);
 
     for (const ranking of splicedLikedRankings) {
