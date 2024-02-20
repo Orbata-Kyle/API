@@ -1,4 +1,4 @@
-import { BadRequestException, Body, Controller, Get, Param, Post, Put, UseGuards } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Delete, Get, NotFoundException, Param, Post, Put, UseGuards } from '@nestjs/common';
 import { GetUser } from '../auth/decorator';
 import { JwtGuard } from '../auth/guard';
 import { TournamentService } from './tournament.service';
@@ -183,5 +183,36 @@ export class TournamentController {
   async undoLastRanking(@GetUser('id') userId: number): Promise<MatchupDto> {
     const result = await this.tournamentService.undoLastRanking(userId);
     return this.responseValidationService.validateResponse(result, MatchupDto);
+  }
+
+  @UseGuards(JwtGuard)
+  @Delete('rank/:interactionStatus/:movieId')
+  @ApiBearerAuth('access-token')
+  @ApiOperation({ summary: 'Remove a Movie from Tournament Rankings' })
+  @ApiParam({
+    name: 'interactionStatus',
+    type: String,
+    enum: ['liked', 'disliked'],
+    description: 'Interaction status to remove movie',
+    required: true,
+  })
+  @ApiParam({ name: 'movieId', type: Number, description: 'ID of the movie to remove', required: true })
+  @ApiResponse({ status: 200, description: 'Movie removed from rankings' })
+  @ApiResponse({ status: 400, description: 'Invalid interactionStatus' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 404, description: 'Movie ranking not found' })
+  async removeMovieRanking(
+    @GetUser('id') userId: number,
+    @Param('interactionStatus', new ValidateSeenInteractionStatus()) interactionStatus: string,
+    @Param('movieId') movieId: string,
+  ): Promise<string> {
+    const swipedMovie = await this.prismaService.tournamentRating.findFirst({
+      where: { userId, interactionStatus, OR: [{ movie1Id: Number(movieId) }, { movie2Id: Number(movieId) }] },
+    });
+    if (!swipedMovie) {
+      throw new NotFoundException('Movie ranking not found');
+    }
+
+    return this.tournamentService.removeMovieRankingsEndpoint(userId, Number(movieId), interactionStatus);
   }
 }

@@ -745,6 +745,33 @@ describe('App e2e', () => {
         await playOutTournamentMatchup(100, 102);
       });
 
+      it('Should throw if deleting non-existing ranking', () => {
+        return pactum
+          .spec()
+          .delete('/tournament/rank/liked/102')
+          .withHeaders({
+            Authorization: 'Bearer $S{userAt}',
+          })
+          .expectStatus(404);
+      });
+
+      it('Should delete ranking and redo it', async () => {
+        await pactum
+          .spec()
+          .delete('/tournament/rank/disliked/100')
+          .withHeaders({
+            Authorization: 'Bearer $S{userAt}',
+          })
+          .expectStatus(200);
+
+        await assertTournamentRatingDoesntExistsInDb(100, 102, 'disliked');
+
+        await playOutTournamentMatchup(100, 102);
+
+        await assertTournamentRatingExistsInDb(100, 102, 'disliked');
+        await assertTournamentRatingDoesntExistsInDb(100, 102, 'liked');
+      });
+
       it('Should add some more movies to rankings for later', async () => {
         await rateMovie('101', 'disliked');
         await rateMovie('103', 'disliked');

@@ -149,9 +149,20 @@ export class TournamentService {
     return 'Successfully forced movie placement';
   }
 
-  async removeMovieRankingsEverywhere(userId: number, movieId: number, prevInteractionStatus: string, newInteractionStatus: string) {
+  async removeMovieRankingsEndpoint(userId: number, movieId: number, interactionStatus: string): Promise<string> {
+    await this.removeMovieRankingsEverywhere(userId, movieId, interactionStatus, interactionStatus, true);
+    return 'Successfully removed movie rankings';
+  }
+
+  async removeMovieRankingsEverywhere(
+    userId: number,
+    movieId: number,
+    prevInteractionStatus: string,
+    newInteractionStatus: string,
+    force = false,
+  ) {
     if (prevInteractionStatus !== 'liked' && prevInteractionStatus !== 'disliked') return;
-    if (newInteractionStatus === prevInteractionStatus) return;
+    if (!force && newInteractionStatus === prevInteractionStatus) return;
 
     // Get all matchups with this movie
     const matchups = await this.prismaService.tournamentRating.findMany({
@@ -172,12 +183,16 @@ export class TournamentService {
 
     // Remove them from the database
     await this.prismaService.tournamentRating.deleteMany({
-      where: { userId, interactionStatus: prevInteractionStatus, OR: [{ movie1Id: movieId }, { movie2Id: movieId }] },
+      where: { id: { in: matchups.map((m) => m.id) } },
     });
 
-    logger.info(
-      `Removed ${matchups.length} matchups for user ${userId} with movie ${movieId} as interactionStatus changed from ${prevInteractionStatus} to ${newInteractionStatus}`,
-    );
+    if (!force) {
+      logger.info(
+        `Removed ${matchups.length} matchups for user ${userId} with movie ${movieId} as interactionStatus changed from ${prevInteractionStatus} to ${newInteractionStatus}`,
+      );
+    } else {
+      logger.info(`Removed ${matchups.length} matchups for user ${userId} with movie ${movieId} from db with force`);
+    }
   }
 
   async removeMovieRankingsInDb(userId: number, movieId: number, prevInteractionStatus: string) {
