@@ -4,7 +4,6 @@ import { SafeUser } from '../../types';
 import logger from '../../utils/logging/winston-config';
 import { EditUserDto } from './dto/request';
 import * as argon from 'argon2';
-import { User } from '@prisma/client';
 import { AuthService } from '../auth/auth.service';
 import { SafeUserWithTokenDto } from './dto/response/safe-user-with-token.dto';
 

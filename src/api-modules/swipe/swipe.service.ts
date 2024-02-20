@@ -103,7 +103,7 @@ export class SwipeService {
     const moviesRatedByOthersCount = filteredMovies.length;
 
     // Iterate pages of top rated movies (popular if it runs out) and add to return list until we have at least 40 movies
-    while (filteredMovies.length <= 40) {
+    while (filteredMovies.length <= 100) {
       // Let random chance decide whether to get a movie from popular or top rated
       // Popular movies bring in more variety, top rated movies bring in more quality
       const fromPopularMovies = Math.random() < 0.55;

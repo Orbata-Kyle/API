@@ -1,4 +1,4 @@
-import { IsDateString, IsEmail, IsMobilePhone, IsOptional, IsString } from 'class-validator';
+import { IsEmail, IsOptional, IsString } from 'class-validator';
 import { ApiPropertyOptional, OmitType } from '@nestjs/swagger';
 import { AuthDto } from '../../../../api-modules/auth/dto/request';
 
