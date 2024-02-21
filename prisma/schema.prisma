@@ -44,6 +44,7 @@ model Video {
   site      String?
   size      Int?
   type      String?
+  key       String?
   official  Boolean?
   published DateTime?
   iso31661  String?

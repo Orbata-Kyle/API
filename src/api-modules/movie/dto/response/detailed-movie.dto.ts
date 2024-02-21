@@ -1,6 +1,6 @@
 import { IsBoolean, IsDate, IsNumber, IsOptional, IsString, IsUrl, ValidateNested } from 'class-validator';
 import { MovieDto } from './movie.dto';
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 
 class Genre {
@@ -23,8 +23,8 @@ class GenreContainer {
 class SpokenLanguage {
   @IsString()
   @IsOptional()
-  @ApiProperty({ type: String, example: 'English', required: false })
-  englishName: string;
+  @ApiPropertyOptional({ type: String, example: 'English', required: false })
+  englishName?: string;
 
   @IsString()
   @ApiProperty({ type: String, example: 'en' })
@@ -32,8 +32,8 @@ class SpokenLanguage {
 
   @IsOptional()
   @IsString()
-  @ApiProperty({ type: String, example: 'Dansk', required: false })
-  name: string;
+  @ApiPropertyOptional({ type: String, example: 'Dansk', required: false })
+  name?: string;
 }
 
 class SpokenLanguageContainer {
@@ -71,44 +71,44 @@ class Cast {
 
   @IsString()
   @IsOptional()
-  @ApiProperty({ type: String, example: 'Jerry', required: false })
-  character: string;
+  @ApiPropertyOptional({ type: String, example: 'Jerry', required: false })
+  character?: string;
 
   @IsNumber()
   @IsOptional()
-  @ApiProperty({ type: Number, example: 28, required: false })
-  order: number;
+  @ApiPropertyOptional({ type: Number, example: 28, required: false })
+  order?: number;
 
   @IsString()
   @IsUrl()
   @IsOptional()
-  @ApiProperty({ type: String, example: 'https://image.tmdb.org/t/p/original/tkYWG9gY2QpoBfOh4OWNz8yQfsw.jpg', required: false })
-  profileUrl: string;
+  @ApiPropertyOptional({ type: String, example: 'https://image.tmdb.org/t/p/original/tkYWG9gY2QpoBfOh4OWNz8yQfsw.jpg', required: false })
+  profileUrl?: string;
 
   @IsString()
   @IsOptional()
-  @ApiProperty({ type: String, example: 'Tom Hollandaise', required: false })
-  originalName: string;
+  @ApiPropertyOptional({ type: String, example: 'Tom Hollandaise', required: false })
+  originalName?: string;
 
   @IsNumber()
   @IsOptional()
-  @ApiProperty({ type: Number, example: 28.9, required: false })
-  popularity: number;
+  @ApiPropertyOptional({ type: Number, example: 28.9, required: false })
+  popularity?: number;
 
   @IsString()
   @IsOptional()
-  @ApiProperty({ type: String, example: 'Acting', required: false })
-  knownForDepartment: string;
+  @ApiPropertyOptional({ type: String, example: 'Acting', required: false })
+  knownForDepartment?: string;
 
   @IsNumber()
   @IsOptional()
-  @ApiProperty({ type: Number, example: 1, description: '1 is Female, 2 Male, 0 Unkown TO BE CONFIRMED!', required: false })
-  gender: number;
+  @ApiPropertyOptional({ type: Number, example: 1, description: '1 is Female, 2 Male, 0 Unkown TO BE CONFIRMED!', required: false })
+  gender?: number;
 
   @IsBoolean()
   @IsOptional()
-  @ApiProperty({ type: Boolean, example: false, required: false })
-  adult: boolean;
+  @ApiPropertyOptional({ type: Boolean, example: false, required: false })
+  adult?: boolean;
 
   @IsNumber()
   @ApiProperty({ type: Number, example: 28 })
@@ -127,38 +127,38 @@ class Crew {
   @IsString()
   @IsUrl()
   @IsOptional()
-  @ApiProperty({ type: String, example: 'https://image.tmdb.org/t/p/original/tkYWG9gY2QpoBfOh4OWNz8yQfsw.jpg', required: false })
-  profileUrl: string;
+  @ApiPropertyOptional({ type: String, example: 'https://image.tmdb.org/t/p/original/tkYWG9gY2QpoBfOh4OWNz8yQfsw.jpg', required: false })
+  profileUrl?: string;
 
   @IsString()
   @IsOptional()
-  @ApiProperty({ type: String, example: 'Tom Hollandaise', required: false })
-  originalName: string;
+  @ApiPropertyOptional({ type: String, example: 'Tom Hollandaise', required: false })
+  originalName?: string;
 
   @IsNumber()
   @IsOptional()
-  @ApiProperty({ type: Number, example: 28.9, required: false })
-  popularity: number;
+  @ApiPropertyOptional({ type: Number, example: 28.9, required: false })
+  popularity?: number;
 
   @IsString()
   @IsOptional()
-  @ApiProperty({ type: String, example: 'Acting', required: false })
-  department: string;
+  @ApiPropertyOptional({ type: String, example: 'Acting', required: false })
+  department?: string;
 
   @IsString()
   @IsOptional()
-  @ApiProperty({ type: String, example: 'Acting', required: false })
-  knownForDepartment: string;
+  @ApiPropertyOptional({ type: String, example: 'Acting', required: false })
+  knownForDepartment?: string;
 
   @IsBoolean()
   @IsOptional()
-  @ApiProperty({ type: Boolean, example: false, required: false })
-  adult: boolean;
+  @ApiPropertyOptional({ type: Boolean, example: false, required: false })
+  adult?: boolean;
 
   @IsString()
   @IsOptional()
-  @ApiProperty({ type: String, example: 'Producer', required: false })
-  job: string;
+  @ApiPropertyOptional({ type: String, example: 'Producer', required: false })
+  job?: string;
 
   @IsNumber()
   @ApiProperty({ type: Number, example: 28 })
@@ -172,43 +172,48 @@ class Video {
 
   @IsString()
   @IsOptional()
-  @ApiProperty({ type: String, example: 'en', required: false })
-  iso6391: string;
+  @ApiPropertyOptional({ type: String, example: 'en', required: false })
+  iso6391?: string;
 
   @IsString()
   @IsOptional()
-  @ApiProperty({ type: String, example: 'US', required: false })
-  iso31661: string;
+  @ApiPropertyOptional({ type: String, example: 'US', required: false })
+  iso31661?: string;
 
   @IsString()
   @IsOptional()
-  @ApiProperty({ type: String, example: 'Lock, Stock And Two Smoking Barrels - Trailer', required: false })
-  name: string;
+  @ApiPropertyOptional({ type: String, example: 'Lock, Stock And Two Smoking Barrels - Trailer', required: false })
+  name?: string;
 
   @IsString()
   @IsOptional()
-  @ApiProperty({ type: String, example: 'YouTube', required: false })
-  site: string;
+  @ApiPropertyOptional({ type: String, example: 'YouTube', required: false })
+  site?: string;
+
+  @IsString()
+  @IsOptional()
+  @ApiPropertyOptional({ type: String, example: 'imtJYamanh0', required: false })
+  key?: string;
 
   @IsNumber()
   @IsOptional()
-  @ApiProperty({ type: Number, example: 1080, required: false })
-  size: number;
+  @ApiPropertyOptional({ type: Number, example: 1080, required: false })
+  size?: number;
 
   @IsString()
   @IsOptional()
-  @ApiProperty({ type: String, example: 'Trailer', required: false })
-  type: string;
+  @ApiPropertyOptional({ type: String, example: 'Trailer', required: false })
+  type?: string;
 
   @IsBoolean()
   @IsOptional()
-  @ApiProperty({ type: Boolean, example: false, required: false })
-  official: boolean;
+  @ApiPropertyOptional({ type: Boolean, example: false, required: false })
+  official?: boolean;
 
   @IsDate()
   @IsOptional()
-  @ApiProperty({ type: Date, example: '2021-01-01T00:00:00.000Z', required: false })
-  published: Date;
+  @ApiPropertyOptional({ type: Date, example: '2021-01-01T00:00:00.000Z', required: false })
+  published?: Date;
 
   @IsNumber()
   @ApiProperty({ type: Number, example: 28 })
@@ -222,28 +227,28 @@ class Details {
 
   @IsString()
   @IsOptional()
-  @ApiProperty({ type: String, example: 'Released', required: false })
-  status: string;
+  @ApiPropertyOptional({ type: String, example: 'Released', required: false })
+  status?: string;
 
   @IsNumber()
   @IsOptional()
-  @ApiProperty({ type: Number, example: 120, required: false })
-  runtime: number;
+  @ApiPropertyOptional({ type: Number, example: 120, required: false })
+  runtime?: number;
 
   @IsString()
   @IsOptional()
-  @ApiProperty({ type: String, example: 'A Disgrace to Criminals Everywhere.', required: false })
-  tagline: string;
+  @ApiPropertyOptional({ type: String, example: 'A Disgrace to Criminals Everywhere.', required: false })
+  tagline?: string;
 
   @IsNumber()
   @IsOptional()
-  @ApiProperty({ type: Number, example: 12000, required: false })
-  revenue: number;
+  @ApiPropertyOptional({ type: Number, example: 12000, required: false })
+  revenue?: number;
 
   @IsNumber()
   @IsOptional()
-  @ApiProperty({ type: Number, example: 1200, required: false })
-  budget: number;
+  @ApiPropertyOptional({ type: Number, example: 1200, required: false })
+  budget?: number;
 
   @IsNumber()
   @ApiProperty({ type: Number, example: 28 })

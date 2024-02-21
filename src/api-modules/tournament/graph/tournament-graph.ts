@@ -1,5 +1,3 @@
-import logger from '../../../utils/logging/winston-config';
-
 export class TournamentGraph {
   private adjacencyList: Map<number, Set<number>>; // Map of movieId to Set of movieIds it is preferred over
   private ranks: Map<number, number>; // Map of movieId to rank

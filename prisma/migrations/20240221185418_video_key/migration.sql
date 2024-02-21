@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE `Video` ADD COLUMN `key` VARCHAR(191) NULL;

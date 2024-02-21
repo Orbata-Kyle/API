@@ -1,5 +1,4 @@
 import { IsNotEmpty, IsNumber, ValidateNested } from 'class-validator';
-import { MovieDto } from './movie.dto';
 import { Type } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
 import { DetailedMovieDto } from './detailed-movie.dto';

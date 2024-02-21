@@ -198,6 +198,7 @@ export class TheMovieDb {
           site: video.site,
           size: video.size,
           type: video.type,
+          key: video.key,
           movieId: movie.id,
           official: video.official,
           published: new Date(video.published_at),
