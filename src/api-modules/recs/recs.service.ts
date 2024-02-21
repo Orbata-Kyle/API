@@ -69,7 +69,7 @@ export class RecsService {
           !userRankingsDislikedIdSet.has(rec.id) &&
           !userRankingsUnseenIdSet.has(rec.id)
         ) {
-          const originalRanking = Number(ranking.rank === 'Unranked' ? splicedLikedRankings.length : ranking.rank);
+          const originalRanking = Number(ranking.rank === '?' ? splicedLikedRankings.length : ranking.rank);
           if (likedWeigts.has(rec.id)) {
             // Increase existing weight by more than the avg of it + new weight but less than it + new weight
             likedWeigts.set(
@@ -90,7 +90,7 @@ export class RecsService {
 
     //   for (const rec of tmdbRecs) {
     //     if (rec.voteCount > 5000 && rec.voteAverage > 6 && !likedWeigts.has(rec.id) && !dislikedWeigts.has(rec.id)) {
-    //       const originalRanking = Number(ranking.rank === 'Unranked' ? splicedDislikedRankings.length : ranking.rank);
+    //       const originalRanking = Number(ranking.rank === '?' ? splicedDislikedRankings.length : ranking.rank);
     //       if (dislikedWeigts.has(rec.id)) {
     //         // Increase existing weight by more than the avg of it + new weight but less than it + new weight
     //         dislikedWeigts.set(

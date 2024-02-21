@@ -45,7 +45,7 @@ export class TournamentService {
     });
     movies = movies.concat(
       unrankedMovies.map((m) => {
-        return { ...m.movie, rank: 'Unranked' };
+        return { ...m.movie, rank: '?' };
       }),
     );
 

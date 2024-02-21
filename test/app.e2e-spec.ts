@@ -831,8 +831,8 @@ describe('App e2e', () => {
 
         for (let i = 1; i < responseBody.length; i++) {
           if (i === responseBody.length - 1) {
-            if (responseBody[i].rank !== 'Unranked') {
-              throw new Error(`Rank of last item is not Unranked`);
+            if (responseBody[i].rank !== '?') {
+              throw new Error(`Rank of last item is not ?`);
             }
           } else if (i > 0 && responseBody[i].id < responseBody[i - 1].id && responseBody[i].rank < responseBody[i - 1].rank) {
             throw new Error(`Id or rank of item at index ${i} is not greater than or equal to id of previous item`);
@@ -851,7 +851,7 @@ describe('App e2e', () => {
           .expectStatus(200)
           .expectJsonLike([
             {
-              rank: 'Unranked',
+              rank: '?',
             },
           ])
           .toss()
@@ -887,7 +887,7 @@ describe('App e2e', () => {
           .expectJsonLike([
             {
               id: 107,
-              rank: 'Unranked',
+              rank: '?',
             },
           ]);
 
@@ -901,7 +901,7 @@ describe('App e2e', () => {
           .expectJsonLike([
             {
               id: 108,
-              rank: 'Unranked',
+              rank: '?',
             },
           ])
           .expect((res) => {
