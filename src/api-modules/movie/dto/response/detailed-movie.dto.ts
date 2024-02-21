@@ -61,10 +61,6 @@ class KeywordsContainer {
 }
 
 class Cast {
-  @IsNumber()
-  @ApiProperty({ type: Number, example: 28 })
-  id: number;
-
   @IsString()
   @ApiProperty({ type: String, example: 'Tom Holland' })
   name: string;
@@ -105,6 +101,11 @@ class Cast {
   @ApiPropertyOptional({ type: Number, example: 1, description: '1 is Female, 2 Male, 0 Unkown TO BE CONFIRMED!', required: false })
   gender?: number;
 
+  @IsString()
+  @IsOptional()
+  @ApiPropertyOptional({ type: String, example: '52fe4437c3a368484e016443', required: false })
+  creditId?: string;
+
   @IsBoolean()
   @IsOptional()
   @ApiPropertyOptional({ type: Boolean, example: false, required: false })
@@ -116,10 +117,6 @@ class Cast {
 }
 
 class Crew {
-  @IsNumber()
-  @ApiProperty({ type: Number, example: 28 })
-  id: number;
-
   @IsString()
   @ApiProperty({ type: String, example: 'Tom Holland' })
   name: string;
@@ -154,6 +151,11 @@ class Crew {
   @IsOptional()
   @ApiPropertyOptional({ type: Boolean, example: false, required: false })
   adult?: boolean;
+
+  @IsString()
+  @IsOptional()
+  @ApiPropertyOptional({ type: String, example: '52fe4437c3a368484e016443', required: false })
+  creditId?: string;
 
   @IsString()
   @IsOptional()
