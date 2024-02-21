@@ -142,7 +142,7 @@ export class TheMovieDb {
     return {
       movieCreateInput: {
         id: movie.id,
-        title: movie.original_title,
+        title: movie.title,
         backdropUrl: movie.backdrop_path ? `https://image.tmdb.org/t/p/original${movie.backdrop_path}` : undefined,
         posterUrl: movie.poster_path ? `https://image.tmdb.org/t/p/original${movie.poster_path}` : undefined,
         releaseDate: new Date(movie.release_date),
