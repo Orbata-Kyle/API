@@ -1,7 +1,7 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsBoolean, IsDate, IsNotEmpty, IsNumber, IsOptional, IsString, Validate, ValidateNested } from 'class-validator';
-import { CastDto, CrewDto, MovieDto } from 'src/api-modules/movie/dto/response';
+import { IsBoolean, IsDate, IsNotEmpty, IsNumber, IsOptional, IsString, ValidateNested } from 'class-validator';
+import { CastDto, CrewDto, MovieDto } from '../../../../api-modules/movie/dto/response';
 
 export class PersonDto {
   @ApiProperty({ example: 123, description: 'The unique identifier of the person' })
@@ -29,10 +29,10 @@ export class PersonDto {
   @IsOptional()
   biography?: string;
 
-  @ApiProperty({ example: 'New York', description: 'The place of birth of the person' })
+  @ApiPropertyOptional({ example: 'New York', description: 'The place of birth of the person' })
   @IsString()
-  @IsNotEmpty()
-  placeOfBirth: string;
+  @IsOptional()
+  placeOfBirth?: string;
 
   @ApiPropertyOptional({ example: 'https://www.example.com', description: 'The profile URL of the person', required: false })
   @IsString()

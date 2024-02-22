@@ -1523,6 +1523,31 @@ describe('App e2e', () => {
     });
   });
 
+  describe('People', () => {
+    it('Should get person', () => {
+      return pactum
+        .spec()
+        .get('/people/974')
+        .withHeaders({
+          Authorization: 'Bearer $S{userAt}',
+        })
+        .expectStatus(200)
+        .expectJsonLike({
+          id: 974,
+          CastMovies: [
+            {
+              personId: 974,
+            },
+          ],
+          CrewMovies: [
+            {
+              personId: 974,
+            },
+          ],
+        });
+    });
+  });
+
   // ------------------ Helper functions ------------------
 
   async function assertMovieExistsInDb(id?: number, maxAttempts = 3, delay = 200) {

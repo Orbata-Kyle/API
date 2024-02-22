@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PersonCreateInputAndRelations, TheMovieDb } from '../../services/the-movie-db.service';
 import { PrismaService } from '../prisma/prisma.service';
-import logger from 'src/utils/logging/winston-config';
+import logger from '../../utils/logging/winston-config';
 import { Person } from '@prisma/client';
 
 @Injectable()
