@@ -4,6 +4,7 @@ import { PeopleCacheService } from '../../utility-modules/people-cache/db-people
 import { ResponseValidationService } from '../../utility-modules/validation/response-validation.service';
 import { ApiOperation, ApiResponse, ApiTags, ApiParam } from '@nestjs/swagger';
 import { ValidateStringIdPipe } from '../../pipes/string-id.pipe';
+import { PersonDto } from './dto/response';
 
 @ApiTags('People')
 @Controller('people')
@@ -17,9 +18,10 @@ export class PeopleController {
   @Get(':id')
   @ApiOperation({ summary: 'Get a person by their ID' })
   @ApiParam({ name: 'id', type: String, description: 'ID of the person', required: true })
-  @ApiResponse({ status: 200, description: 'Person details' })
+  @ApiResponse({ status: 200, description: 'Person details', type: PersonDto })
   @ApiResponse({ status: 404, description: 'Person not found' })
-  async getMovieById(@Param('id', new ValidateStringIdPipe()) id: string) {
-    return await this.dbPeopleCache.getPersonById(Number(id));
+  async getMovieById(@Param('id', new ValidateStringIdPipe()) id: string): Promise<PersonDto> {
+    const person = await this.dbPeopleCache.getPersonById(Number(id));
+    return this.responseValidationService.validateResponse(person, PersonDto);
   }
 }

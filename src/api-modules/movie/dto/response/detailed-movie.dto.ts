@@ -60,7 +60,11 @@ class KeywordsContainer {
   keyword: Keyword;
 }
 
-class Cast {
+export class CastDto {
+  @IsNumber()
+  @ApiProperty({ type: Number, example: 28 })
+  personId: number;
+
   @IsString()
   @ApiProperty({ type: String, example: 'Tom Holland' })
   name: string;
@@ -116,7 +120,11 @@ class Cast {
   movieId: number;
 }
 
-class Crew {
+export class CrewDto {
+  @IsNumber()
+  @ApiProperty({ type: Number, example: 28 })
+  personId: number;
+
   @IsString()
   @ApiProperty({ type: String, example: 'Tom Holland' })
   name: string;
@@ -287,14 +295,14 @@ export class DetailedMovieDto extends MovieDto {
   keywords: KeywordsContainer[];
 
   @ValidateNested({ each: true })
-  @Type(() => Cast)
-  @ApiProperty({ type: () => [Cast] })
-  cast: Cast[];
+  @Type(() => CastDto)
+  @ApiProperty({ type: () => [CastDto] })
+  cast: CastDto[];
 
   @ValidateNested({ each: true })
-  @Type(() => Crew)
-  @ApiProperty({ type: () => [Crew] })
-  crew: Crew[];
+  @Type(() => CrewDto)
+  @ApiProperty({ type: () => [CrewDto] })
+  crew: CrewDto[];
 
   @ValidateNested({ each: true })
   @Type(() => Video)
