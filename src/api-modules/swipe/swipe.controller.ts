@@ -27,6 +27,7 @@ export class SwipeController {
   @ApiBearerAuth('access-token')
   @ApiOperation({ summary: 'Undo last swipe and return it' })
   @ApiResponse({ status: 200, description: 'Last swipe undone', type: MovieDto })
+  @ApiResponse({ status: 400, description: 'Cannot undo a swipe that is already part of a tournament rating' })
   @ApiResponse({ status: 404, description: 'No more swipes to undo' })
   async undoLastSwipe(@GetUser('id') userId: number): Promise<MovieDto> {
     const result = await this.swipeService.undoLastSwipe(userId);

@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import type { Movie } from '@prisma/client';
 import { PrismaService } from '../../utility-modules/prisma/prisma.service';
 import logger from '../../utils/logging/winston-config';
@@ -167,6 +167,16 @@ export class SwipeService {
     });
 
     if (!lastSwipe) throw new NotFoundException('No more swipes to undo');
+
+    // Check if involved in tournament rating
+    const tournamentRating = await this.prisma.tournamentRating.findFirst({
+      where: {
+        OR: [{ movie1Id: lastSwipe.movieId }, { movie2Id: lastSwipe.movieId }],
+      },
+    });
+    if (tournamentRating) {
+      throw new BadRequestException('Cannot undo a swipe that is already part of a tournament rating');
+    }
 
     await this.prisma.userMovieRating.delete({
       where: {

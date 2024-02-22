@@ -745,6 +745,42 @@ describe('App e2e', () => {
         await playOutTournamentMatchup(100, 102);
       });
 
+      it('Should throw if undoing swipe that is part of a tournament rating', async () => {
+        await rateMovie('548', 'liked');
+        await rateMovie('549', 'liked');
+
+        await playOutTournamentMatchup(548, 549);
+
+        await pactum
+          .spec()
+          .put('/swipe/undo')
+          .withHeaders({
+            Authorization: 'Bearer $S{userAt}',
+          })
+          .expectStatus(400);
+      });
+
+      it('Should delete last ranking', async () => {
+        await pactum
+          .spec()
+          .delete('/tournament/rank/liked/548')
+          .withHeaders({
+            Authorization: 'Bearer $S{userAt}',
+          })
+          .expectStatus(200);
+
+        await assertTournamentRatingDoesntExistsInDb(548, 549, 'liked');
+
+        // Clean up
+        await prisma.movie.deleteMany({
+          where: {
+            id: {
+              in: [548, 549],
+            },
+          },
+        });
+      });
+
       it('Should throw if deleting non-existing ranking', () => {
         return pactum
           .spec()
