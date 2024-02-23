@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import type { Movie, UserMovieRating } from '@prisma/client';
 import { PrismaService } from '../../utility-modules/prisma/prisma.service';
 import logger from '../../utils/logging/winston-config';
@@ -56,5 +56,17 @@ export class MovieService {
     });
 
     return movieRating;
+  }
+
+  async getRatingForMovie(movieId: number, userId: number): Promise<UserMovieRating> {
+    const rating = await this.prisma.userMovieRating.findFirst({
+      where: { userId, movieId },
+    });
+
+    if (!rating) {
+      throw new NotFoundException('Movie rating not found');
+    } else {
+      return rating;
+    }
   }
 }

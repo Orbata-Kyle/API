@@ -7,7 +7,8 @@ import { PrismaService } from '../../utility-modules/prisma/prisma.service';
 import { ForceRankDto, RankDto } from './dto/request';
 import { ApiOperation, ApiResponse, ApiTags, ApiBearerAuth, ApiBody, ApiParam } from '@nestjs/swagger';
 import { ResponseValidationService } from '../../utility-modules/validation/response-validation.service';
-import { ValidateSeenInteractionStatus } from '../..//pipes/seen-interaction-status.pipe';
+import { ValidateSeenInteractionStatus } from '../../pipes/seen-interaction-status.pipe';
+import { ValidateStringIdPipe } from '../../pipes/string-id.pipe';
 
 @ApiTags('Tournament')
 @Controller('tournament')
@@ -204,7 +205,7 @@ export class TournamentController {
   async removeMovieRanking(
     @GetUser('id') userId: number,
     @Param('interactionStatus', new ValidateSeenInteractionStatus()) interactionStatus: string,
-    @Param('movieId') movieId: string,
+    @Param('movieId', new ValidateStringIdPipe()) movieId: string,
   ): Promise<string> {
     const swipedMovie = await this.prismaService.tournamentRating.findFirst({
       where: { userId, interactionStatus, OR: [{ movie1Id: Number(movieId) }, { movie2Id: Number(movieId) }] },

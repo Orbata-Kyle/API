@@ -54,7 +54,6 @@ export class MovieController {
   @ApiResponse({ status: 400, description: 'Invalid action' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 404, description: 'Movie not found' })
-  @ApiBearerAuth('access-token')
   async rateMovieById(
     @Param('id', new ValidateStringIdPipe()) id: string,
     @Param('action', new ValidateFullInteractionStatus()) action: string,
@@ -63,6 +62,19 @@ export class MovieController {
     await this.dbMovieCache.ensureMovieInDb(Number(id));
 
     const result = await this.movieService.rateMovieById(id, action, userId);
+    return await this.responseValidationService.validateResponse(result, MovieRatingDto);
+  }
+
+  @UseGuards(JwtGuard)
+  @Get(':id/rating')
+  @ApiBearerAuth('access-token')
+  @ApiOperation({ summary: 'Get your rating for a movie' })
+  @ApiParam({ name: 'id', type: String, description: 'ID of the movie', required: true })
+  @ApiResponse({ status: 200, description: 'Your rating', type: MovieRatingDto })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 404, description: 'Movie rating not found' })
+  async getYourRatingForMovie(@Param('id', new ValidateStringIdPipe()) id: string, @GetUser('id') userId: number): Promise<MovieRatingDto> {
+    const result = await this.movieService.getRatingForMovie(Number(id), userId);
     return await this.responseValidationService.validateResponse(result, MovieRatingDto);
   }
 }

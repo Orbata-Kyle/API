@@ -280,6 +280,33 @@ describe('App e2e', () => {
         await assertUserMovieRatingExistsInDb(101, 'unseen');
       });
     });
+
+    describe('get own rating for movie', () => {
+      it('Should get own rating for movie', () => {
+        return pactum
+          .spec()
+          .get('/movie/{id}/rating')
+          .withPathParams('id', '100')
+          .withHeaders({
+            Authorization: 'Bearer $S{userAt}',
+          })
+          .expectStatus(200)
+          .expectJsonLike({
+            interactionStatus: 'liked',
+          });
+      });
+
+      it('Should throw if movie rating not found', () => {
+        return pactum
+          .spec()
+          .get('/movie/{id}/rating')
+          .withPathParams('id', '0')
+          .withHeaders({
+            Authorization: 'Bearer $S{userAt}',
+          })
+          .expectStatus(404);
+      });
+    });
   });
 
   describe('User', () => {
