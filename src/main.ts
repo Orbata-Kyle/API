@@ -9,17 +9,7 @@ import * as dotenv from 'dotenv';
 dotenv.config();
 
 async function bootstrap() {
-  const app = await NestFactory.create(
-    AppModule,
-    process.env.ENV === 'prod'
-      ? {
-          httpsOptions: {
-            key: fs.readFileSync('/etc/letsencrypt/live/api.omlist.io/privkey.pem'),
-            cert: fs.readFileSync('/etc/letsencrypt/live/api.omlist.io/cert.pem'),
-          },
-        }
-      : undefined,
-  );
+  const app = await NestFactory.create(AppModule);
   const { httpAdapter } = app.get(HttpAdapterHost);
   app.enableCors({ origin: '*' });
   app.useGlobalPipes(
