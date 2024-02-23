@@ -12,12 +12,14 @@ export class PeopleCacheService {
     const personFromDb = await this.getPersonFromDb(id, includeRelations);
 
     if (personFromDb) {
+      // Determine if we need to update the person in DB
       const needsUpdate = includeRelations && !(personFromDb.CastPeople.length > 0) && !(personFromDb.CrewPeople.length > 0);
       if (!needsUpdate) {
         logger.info(`Person ${id} found in DB`);
         if (includeRelations) {
           // eslint-disable-next-line @typescript-eslint/no-unused-vars
           const { CastPeople, CrewPeople, ...personWithoutCastCrew } = personFromDb;
+          // Restructure for less nested and better spelled response
           return {
             ...personWithoutCastCrew,
             CastMovies: personFromDb.CastPeople.map((castPerson) => castPerson.cast),
@@ -40,9 +42,11 @@ export class PeopleCacheService {
     const person = await this.savePersonToDb(personToSave, includeRelations);
 
     if (includeRelations) {
+      // Get person with relations from DB as the saved object does not include relations
       const personWithRelations = await this.getPersonFromDb(person.id, true);
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { CastPeople, CrewPeople, ...personWithoutCastCrew } = personWithRelations;
+      // Restructure for less nested and better spelled response
       return {
         ...personWithoutCastCrew,
         CastMovies: personWithRelations.CastPeople.map((castPerson) => castPerson.cast),
@@ -67,6 +71,7 @@ export class PeopleCacheService {
       let savedCastCount = 0;
       for (const castMovie of person.castMovieCreateInputs) {
         // Ensure movie is in DB
+        // First find and then create and not upsert as expected default is that it already exists
         const movie = await this.prisma.movie.findUnique({
           where: {
             id: castMovie.cast.movieId,
@@ -78,6 +83,7 @@ export class PeopleCacheService {
           });
         }
 
+        // Upsert as no expectation of existence but also no expectation it doesn't, middle ground of create and update cache
         await this.prisma.cast.upsert({
           where: {
             creditId: castMovie.cast.creditId,
@@ -87,6 +93,7 @@ export class PeopleCacheService {
         });
         savedCastCount++;
 
+        // Upsert as no expectation of existence but also no expectation it doesn't, middle ground of create and update cache
         await this.prisma.castPerson.upsert({
           where: {
             creditId_personId: {
@@ -106,6 +113,7 @@ export class PeopleCacheService {
       let savedCrewCount = 0;
       for (const crewMovie of person.crewMovieCreateInputs) {
         // Ensure movie is in DB
+        // First find and then create and not upsert as expected default is that it already exists
         const movie = await this.prisma.movie.findUnique({
           where: {
             id: crewMovie.crew.movieId,
@@ -117,6 +125,7 @@ export class PeopleCacheService {
           });
         }
 
+        // Upsert as no expectation of existence but also no expectation it doesn't, middle ground of create and update cache
         await this.prisma.crew.upsert({
           where: {
             creditId: crewMovie.crew.creditId,
@@ -126,6 +135,7 @@ export class PeopleCacheService {
         });
         savedCrewCount++;
 
+        // Upsert as no expectation of existence but also no expectation it doesn't, middle ground of create and update cache
         await this.prisma.crewPerson.upsert({
           where: {
             creditId_personId: {
