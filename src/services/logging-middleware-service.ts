@@ -5,7 +5,7 @@ import logger from '../utils/logging/winston-config';
 @Injectable()
 export class LoggingMiddleware implements NestMiddleware {
   use(request: Request, response: Response, next: NextFunction): void {
-    const { ip, method, body, query, params } = request;
+    const { method, body, query, params } = request;
     const start = Date.now();
     let responseBody = '';
 
@@ -32,7 +32,9 @@ export class LoggingMiddleware implements NestMiddleware {
         JSON.stringify(params).length > 100 ? JSON.stringify(params).substring(0, 100) + '...' : JSON.stringify(params);
 
       logger.http(
-        `${statusCode} ${method} ${request.route?.path} - ${elapsed}ms | Body: ${loggedRequestBody} - Query: ${loggedRequestQuery} - Params: ${loggedRequestParams} | ResBody: ${loggedResponseBody}`,
+        `${statusCode} ${method} ${
+          JSON.parse(loggedRequestParams)['0']
+        } - ${elapsed}ms | Body: ${loggedRequestBody} - Query: ${loggedRequestQuery} | ResBody: ${loggedResponseBody}`,
       );
     });
 
