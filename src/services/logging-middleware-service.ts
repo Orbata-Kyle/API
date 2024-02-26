@@ -5,7 +5,7 @@ import logger from '../utils/logging/winston-config';
 @Injectable()
 export class LoggingMiddleware implements NestMiddleware {
   use(request: Request, response: Response, next: NextFunction): void {
-    const { ip, method } = request;
+    const { ip, method, body, query, params } = request;
     const start = Date.now();
     let responseBody = '';
 
@@ -22,9 +22,18 @@ export class LoggingMiddleware implements NestMiddleware {
       const elapsed = Date.now() - start;
 
       // Log response body with a length check
-      const loggedBody = responseBody.length > 100 ? responseBody.substring(0, 150) + '...' : responseBody;
+      const loggedResponseBody = responseBody.length > 100 ? responseBody.substring(0, 150) + '...' : responseBody;
 
-      logger.http(`${statusCode} ${method} ${request.route?.path} - ${ip} - ${elapsed}ms - Response: ${loggedBody}`);
+      // Serialize and truncate request body and query params
+      const loggedRequestBody = JSON.stringify(body).length > 100 ? JSON.stringify(body).substring(0, 100) + '...' : JSON.stringify(body);
+      const loggedRequestQuery =
+        JSON.stringify(query).length > 100 ? JSON.stringify(query).substring(0, 100) + '...' : JSON.stringify(query);
+      const loggedRequestParams =
+        JSON.stringify(params).length > 100 ? JSON.stringify(params).substring(0, 100) + '...' : JSON.stringify(params);
+
+      logger.http(
+        `${statusCode} ${method} ${request.route?.path} - ${elapsed}ms | Body: ${loggedRequestBody} - Query: ${loggedRequestQuery} - Params: ${loggedRequestParams} | ResBody: ${loggedResponseBody}`,
+      );
     });
 
     next();
