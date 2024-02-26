@@ -1,3 +1,5 @@
+import logger from '../../../utils/logging/winston-config';
+
 export class TournamentGraph {
   private adjacencyList: Map<number, Set<number>>; // Map of movieId to Set of movieIds it is preferred over
   private ranks: Map<number, number>; // Map of movieId to rank
@@ -90,6 +92,7 @@ export class TournamentGraph {
   }
 
   forceMoviePlacement(movieId: number, aboveMovieId: number | undefined, belowMovieId: number | undefined): [number, number][] {
+    logger.warn(this.adjacencyList);
     // Save all movieIds that won over moveiId and all movieIds that movieId won over
     const movieIdsThatWonOverMovieId = new Set<number>();
     const movieIdsThatMovieIdWonOver = new Set<number>();
@@ -129,6 +132,8 @@ export class TournamentGraph {
     });
 
     this.newPreference = true; // Invalidate cached ranks as the graph has changed
+
+    logger.warn(this.adjacencyList);
 
     return newEdges;
   }
