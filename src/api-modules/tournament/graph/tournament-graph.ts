@@ -2,7 +2,7 @@ import logger from '../../../utils/logging/winston-config';
 
 export class TournamentGraph {
   private adjacencyList: Map<number, Set<number>>; // Map of movieId to Set of movieIds it is preferred over
-  private ranks: Map<number, number>; // Map of movieId to rank
+  private savedScores: Map<number, number>; // Map of movieId to rank
   private newPreference = false; // True after a new preference is added, to invalidate current cached ranks
 
   constructor() {
@@ -22,7 +22,7 @@ export class TournamentGraph {
 
   restoreAdjacencyList(adjacencyList: Map<number, Set<number>>): void {
     this.adjacencyList = adjacencyList;
-    this.ranks = new Map<number, number>();
+    this.savedScores = new Map<number, number>();
     this.newPreference = true;
   }
 
@@ -92,7 +92,6 @@ export class TournamentGraph {
   }
 
   forceMoviePlacement(movieId: number, aboveMovieId: number | undefined, belowMovieId: number | undefined): [number, number][] {
-    logger.warn(this.adjacencyList);
     // Save all movieIds that won over moveiId and all movieIds that movieId won over
     const movieIdsThatWonOverMovieId = new Set<number>();
     const movieIdsThatMovieIdWonOver = new Set<number>();
@@ -132,8 +131,6 @@ export class TournamentGraph {
     });
 
     this.newPreference = true; // Invalidate cached ranks as the graph has changed
-
-    logger.warn(this.adjacencyList);
 
     return newEdges;
   }
@@ -212,17 +209,23 @@ export class TournamentGraph {
   }
 
   computeRankings(): Map<number, number> {
-    if (!this.newPreference) {
-      return this.ranks;
+    const uniqueMovieIds = new Set<number>();
+    this.adjacencyList.forEach((value, key) => {
+      uniqueMovieIds.add(key);
+      value.forEach((val) => uniqueMovieIds.add(val));
+    });
+
+    if (!this.newPreference && this.savedScores && this.savedScores.size === uniqueMovieIds.size) {
+      return this.convertScoresToRanks(this.savedScores);
     }
 
-    const scores = new Map<number, number>();
-    this.adjacencyList.forEach((loserIds, movieId) => {
-      scores.set(movieId, 1000);
-      loserIds.forEach((loserId) => {
-        scores.set(loserId, 1000);
-      });
-    }); // Initialize scores
+    let scores = new Map<number, number>();
+
+    if (this.savedScores && this.savedScores.size === uniqueMovieIds.size) {
+      scores = this.savedScores;
+    } else {
+      uniqueMovieIds.forEach((movieId) => scores.set(movieId, 1000));
+    }
 
     const MAX_ITERATIONS = this.adjacencyList.size * 100;
     let iterationCount = 0;
@@ -249,10 +252,14 @@ export class TournamentGraph {
       this.normalizeScores(scores); // Normalize scores
     } while (hasChanges && iterationCount < MAX_ITERATIONS);
 
-    this.ranks = this.convertScoresToRanks(scores);
+    if (iterationCount === MAX_ITERATIONS) {
+      logger.error(`Max iterations of ${MAX_ITERATIONS} reached while computing rankings`);
+    }
 
+    this.savedScores = scores;
     this.newPreference = false;
-    return this.ranks;
+
+    return this.convertScoresToRanks(scores);
   }
 
   // --------------------- Helper methods for computing rankings ---------------------
@@ -273,22 +280,22 @@ export class TournamentGraph {
   }
 
   private applyTransitivityCheck(scores: Map<number, number>): boolean {
-    let transitivityApplied = false;
+    const upsetFactor = 3;
+    let scoreChanged = false;
 
     this.adjacencyList.forEach((edges, winnerId) => {
       edges.forEach((loserId) => {
         this.adjacencyList.get(loserId)?.forEach((transitiveLoserId) => {
           if (scores.get(winnerId) <= scores.get(transitiveLoserId)) {
-            const scoreAdjustment = (scores.get(transitiveLoserId) - scores.get(winnerId)) / 2;
-            scores.set(winnerId, scores.get(winnerId) + scoreAdjustment);
-            scores.set(transitiveLoserId, scores.get(transitiveLoserId) - scoreAdjustment);
-            transitivityApplied = true;
+            scores.set(winnerId, scores.get(winnerId) + upsetFactor);
+            scores.set(transitiveLoserId, scores.get(transitiveLoserId) - upsetFactor);
+            scoreChanged = true;
           }
         });
       });
     });
 
-    return transitivityApplied;
+    return scoreChanged;
   }
 
   private normalizeScores(scores: Map<number, number>): void {
