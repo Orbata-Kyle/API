@@ -14,7 +14,6 @@ export class MovieService {
   ) {}
 
   async searchForMovieByTitle(title: string, page: number): Promise<Movie[]> {
-    logger.info('Searching for movie by title: ' + title);
     const movies = await this.movieCache.searchForMovieByTitle(title, page);
 
     return movies;
@@ -25,8 +24,6 @@ export class MovieService {
   }
 
   async rateMovieById(id: string, action: string, userId: number): Promise<UserMovieRating> {
-    logger.info(`User ${userId} ${action} movie ${id}`);
-    // Make sure the movie exists
     const movieFromDb = await this.prisma.movie.findUnique({
       where: { id: parseInt(id) },
     });

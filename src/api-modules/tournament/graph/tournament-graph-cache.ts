@@ -1,3 +1,4 @@
+import logger from '../../../utils/logging/winston-config';
 import { PrismaService } from '../../../utility-modules/prisma/prisma.service';
 import { TournamentGraph } from './tournament-graph';
 
@@ -44,20 +45,24 @@ export class TournamentGraphCache {
 
   public async getLikeGraphForUser(userId: number): Promise<TournamentGraph> {
     if (this.likesCache[userId] && this.likesCache[userId].timestamp > Date.now() - 1000 * 60 * 60 * 24) {
+      this.checkAndRemoveOldCaches();
       return this.likesCache[userId].graph;
     } else {
       const graph = await this.createGraphForUser(userId, true);
       this.likesCache[userId] = { timestamp: Date.now(), graph };
+      this.checkAndRemoveOldCaches();
       return graph;
     }
   }
 
   public async getDislikedGraphForUser(userId: number): Promise<TournamentGraph> {
     if (this.dislikesCache[userId] && this.dislikesCache[userId].timestamp > Date.now() - 1000 * 60 * 60 * 24) {
+      this.checkAndRemoveOldCaches();
       return this.dislikesCache[userId].graph;
     } else {
       const graph = await this.createGraphForUser(userId, false);
       this.dislikesCache[userId] = { timestamp: Date.now(), graph };
+      this.checkAndRemoveOldCaches();
       return graph;
     }
   }
@@ -73,5 +78,22 @@ export class TournamentGraphCache {
     });
 
     return graph;
+  }
+
+  private checkAndRemoveOldCaches() {
+    const now = Date.now();
+    const oneDay = 1000 * 60 * 60 * 24;
+
+    Object.keys(this.likesCache).forEach((key) => {
+      if (this.likesCache[key].timestamp < now - oneDay) {
+        this.likesCache[key] = undefined;
+      }
+    });
+
+    Object.keys(this.dislikesCache).forEach((key) => {
+      if (this.dislikesCache[key].timestamp < now - oneDay) {
+        this.dislikesCache[key] = undefined;
+      }
+    });
   }
 }

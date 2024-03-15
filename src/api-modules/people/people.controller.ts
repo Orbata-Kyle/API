@@ -20,7 +20,7 @@ export class PeopleController {
   @ApiParam({ name: 'id', type: String, description: 'ID of the person', required: true })
   @ApiResponse({ status: 200, description: 'Person details', type: PersonDto })
   @ApiResponse({ status: 404, description: 'Person not found' })
-  async getMovieById(@Param('id', new ValidateStringIdPipe()) id: string): Promise<PersonDto> {
+  async getPersonById(@Param('id', new ValidateStringIdPipe()) id: string): Promise<PersonDto> {
     const person = await this.dbPeopleCache.getPersonById(Number(id));
     return this.responseValidationService.validateResponse(person, PersonDto);
   }
