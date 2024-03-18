@@ -1,3 +1,4 @@
+import { InternalServerErrorException } from '@nestjs/common';
 import logger from '../../../utils/logging/winston-config';
 
 export class TournamentGraph {
@@ -210,24 +211,20 @@ export class TournamentGraph {
 
   computeRankings(): Map<number, number> {
     const uniqueMovieIds = new Set<number>();
-    this.adjacencyList.forEach((value, key) => {
-      uniqueMovieIds.add(key);
-      value.forEach((val) => uniqueMovieIds.add(val));
+    this.adjacencyList.forEach((edges, winnerId) => {
+      uniqueMovieIds.add(winnerId);
+      edges.forEach((val) => uniqueMovieIds.add(val));
     });
 
     if (!this.newPreference && this.savedScores && this.savedScores.size === uniqueMovieIds.size) {
+      // Nothing changed, return cached rankings
       return this.convertScoresToRanks(this.savedScores);
     }
 
-    let scores = new Map<number, number>();
+    const scores = new Map<number, number>();
+    this.initializeScores(scores, uniqueMovieIds);
 
-    if (this.savedScores && this.savedScores.size === uniqueMovieIds.size) {
-      scores = this.savedScores;
-    } else {
-      uniqueMovieIds.forEach((movieId) => scores.set(movieId, 1000));
-    }
-
-    const MAX_ITERATIONS = this.adjacencyList.size * 100;
+    const MAX_ITERATIONS = uniqueMovieIds.size * 150;
     let iterationCount = 0;
     let hasChanges: boolean;
 
@@ -244,12 +241,12 @@ export class TournamentGraph {
         });
       });
 
+      // Don't need transitivity as above takes care of it too, just in more iterations, normalization is also not needed
       // Transitivity check
-      if (this.applyTransitivityCheck(scores)) {
-        hasChanges = true;
-      }
-
-      this.normalizeScores(scores); // Normalize scores
+      // if (this.applyTransitivityCheck(scores)) {
+      //   hasChanges = true;
+      // }
+      // this.normalizeScores(scores); // Normalize scores
     } while (hasChanges && iterationCount < MAX_ITERATIONS);
 
     if (iterationCount === MAX_ITERATIONS) {
@@ -259,13 +256,84 @@ export class TournamentGraph {
     this.savedScores = scores;
     this.newPreference = false;
 
-    return this.convertScoresToRanks(scores);
+    const ranks = this.convertScoresToRanks(scores);
+    return ranks;
   }
 
   // --------------------- Helper methods for computing rankings ---------------------
+  private initializeScores(scores: Map<number, number>, uniqueMovieIds: Set<number>): void {
+    const getFactor = (wins: number, losses: number): number => {
+      return ((wins - losses) / uniqueMovieIds.size) * ((wins + 1) / (wins + losses + 1));
+    };
+    const getWinLossCounts = (): [Map<number, number>, Map<number, number>] => {
+      const winCounts = new Map<number, number>();
+      const lossCounts = new Map<number, number>();
+      this.adjacencyList.forEach((edges, winnerId) => {
+        edges.forEach((loserId) => {
+          winCounts.set(winnerId, (winCounts.get(winnerId) || 0) + 1);
+          lossCounts.set(loserId, (lossCounts.get(loserId) || 0) + 1);
+        });
+      });
+      return [winCounts, lossCounts];
+    };
+
+    if (
+      this.savedScores &&
+      Math.abs(this.savedScores.size - uniqueMovieIds.size) <= 10 &&
+      this.savedScores.size > 0.7 * uniqueMovieIds.size
+    ) {
+      // If most scores are already cached, use them as a starting point while filling in the gaps
+      let winCounts: Map<number, number> | undefined;
+      let lossCounts: Map<number, number> | undefined;
+
+      this.adjacencyList.forEach((edges, winnerId) => {
+        if (!scores.has(winnerId)) {
+          if (this.savedScores.has(winnerId)) {
+            scores.set(winnerId, this.savedScores.get(winnerId)!);
+          } else {
+            if (!winCounts || !lossCounts) [winCounts, lossCounts] = getWinLossCounts();
+            const wins = winCounts.get(winnerId) || 0;
+            const losses = lossCounts.get(winnerId) || 0;
+            scores.set(winnerId, 1000 + 2000 * getFactor(wins, losses));
+          }
+        }
+
+        edges.forEach((loserId) => {
+          if (!scores.has(loserId)) {
+            if (this.savedScores.has(loserId)) {
+              scores.set(loserId, this.savedScores.get(loserId)!);
+            } else {
+              if (!winCounts || !lossCounts) [winCounts, lossCounts] = getWinLossCounts();
+              const wins = winCounts.get(loserId) || 0;
+              const losses = lossCounts.get(loserId) || 0;
+              scores.set(loserId, 1000 + 2000 * getFactor(wins, losses));
+            }
+          }
+        });
+      });
+    } else {
+      // If most scores are not cached, compute starting point them from scratch
+      const [winCounts, lossCounts] = getWinLossCounts();
+      this.adjacencyList.forEach((edges, winnerId) => {
+        if (!scores.has(winnerId)) {
+          const wins = winCounts.get(winnerId) || 0;
+          const losses = lossCounts.get(winnerId) || 0;
+          scores.set(winnerId, 1000 + 2000 * getFactor(wins, losses));
+        }
+
+        edges.forEach((loserId) => {
+          if (!scores.has(loserId)) {
+            const wins = winCounts.get(loserId) || 0;
+            const losses = lossCounts.get(loserId) || 0;
+            scores.set(loserId, 1000 + 2000 * getFactor(wins, losses));
+          }
+        });
+      });
+    }
+  }
 
   private adjustScores(winnerId: number, loserId: number, scores: Map<number, number>): boolean {
-    const upsetFactor = 3;
+    const upsetFactor = 19 + Math.random() * 10; // Random to prevent deadlocks
     const winnerScore = scores.get(winnerId);
     const loserScore = scores.get(loserId);
     let scoreChanged = false;
@@ -279,34 +347,34 @@ export class TournamentGraph {
     return scoreChanged;
   }
 
-  private applyTransitivityCheck(scores: Map<number, number>): boolean {
-    const upsetFactor = 3;
-    let scoreChanged = false;
+  // private applyTransitivityCheck(scores: Map<number, number>): boolean {
+  //   const upsetFactor = 3;
+  //   let scoreChanged = false;
 
-    this.adjacencyList.forEach((edges, winnerId) => {
-      edges.forEach((loserId) => {
-        this.adjacencyList.get(loserId)?.forEach((transitiveLoserId) => {
-          if (scores.get(winnerId) <= scores.get(transitiveLoserId)) {
-            scores.set(winnerId, scores.get(winnerId) + upsetFactor);
-            scores.set(transitiveLoserId, scores.get(transitiveLoserId) - upsetFactor);
-            scoreChanged = true;
-          }
-        });
-      });
-    });
+  //   this.adjacencyList.forEach((edges, winnerId) => {
+  //     edges.forEach((loserId) => {
+  //       this.adjacencyList.get(loserId)?.forEach((transitiveLoserId) => {
+  //         if (scores.get(winnerId) <= scores.get(transitiveLoserId)) {
+  //           scores.set(winnerId, scores.get(winnerId) + upsetFactor);
+  //           scores.set(transitiveLoserId, scores.get(transitiveLoserId) - upsetFactor);
+  //           scoreChanged = true;
+  //         }
+  //       });
+  //     });
+  //   });
 
-    return scoreChanged;
-  }
+  //   return scoreChanged;
+  // }
 
-  private normalizeScores(scores: Map<number, number>): void {
-    const maxScore = Math.max(...Array.from(scores.values()));
-    const minScore = Math.min(...Array.from(scores.values()));
+  // private normalizeScores(scores: Map<number, number>): void {
+  //   const maxScore = Math.max(...Array.from(scores.values()));
+  //   const minScore = Math.min(...Array.from(scores.values()));
 
-    scores.forEach((score, movieId) => {
-      const normalizedScore = (1000 * (score - minScore)) / (maxScore - minScore);
-      scores.set(movieId, normalizedScore);
-    });
-  }
+  //   scores.forEach((score, movieId) => {
+  //     const normalizedScore = (1000 * (score - minScore)) / (maxScore - minScore);
+  //     scores.set(movieId, normalizedScore);
+  //   });
+  // }
 
   private convertScoresToRanks(scores: Map<number, number>): Map<number, number> {
     const sortedScores = Array.from(scores.entries()).sort((a, b) => b[1] - a[1]);
