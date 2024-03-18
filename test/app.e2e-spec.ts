@@ -999,6 +999,54 @@ describe('App e2e', () => {
           });
       });
 
+      it('Should throw if invalid interaction status', async () => {
+        return pactum
+          .spec()
+          .get('/tournament/progress/unseen')
+          .withHeaders({
+            Authorization: 'Bearer $S{userAt}',
+          })
+          .expectStatus(400);
+      });
+
+      it('Should get progress of 0', () => {
+        return pactum
+          .spec()
+          .get('/tournament/progress/liked')
+          .withHeaders({
+            Authorization: 'Bearer $S{userAt}',
+          })
+          .expectStatus(200)
+          .expect((ctx) => {
+            const responseBodyAsNumber = parseFloat(ctx.res.body);
+            if (isNaN(responseBodyAsNumber)) {
+              throw new Error('Response body is not a number');
+            }
+            if (responseBodyAsNumber !== 0) {
+              throw new Error('Response body is not 0');
+            }
+          });
+      });
+
+      it('Should get progress of < 1 & > 0', () => {
+        return pactum
+          .spec()
+          .get('/tournament/progress/disliked')
+          .withHeaders({
+            Authorization: 'Bearer $S{userAt}',
+          })
+          .expectStatus(200)
+          .expect((ctx) => {
+            const responseBodyAsNumber = parseFloat(ctx.res.body);
+            if (isNaN(responseBodyAsNumber)) {
+              throw new Error('Response body is not a number');
+            }
+            if (responseBodyAsNumber >= 1 || responseBodyAsNumber <= 0) {
+              throw new Error('Response body is not between 0 and 1');
+            }
+          });
+      });
+
       it('Should get matches and rank them, never getting duplicates, empty response when all ranked', async () => {
         await rateMovie('108', 'disliked');
         await rateMovie('109', 'disliked');
@@ -1036,6 +1084,25 @@ describe('App e2e', () => {
           .expectJsonLike({
             movies: [],
             interactionStatus: 'undefined',
+          });
+      });
+
+      it('Should get progress of 1', () => {
+        return pactum
+          .spec()
+          .get('/tournament/progress/disliked')
+          .withHeaders({
+            Authorization: 'Bearer $S{userAt}',
+          })
+          .expectStatus(200)
+          .expect((ctx) => {
+            const responseBodyAsNumber = parseFloat(ctx.res.body);
+            if (isNaN(responseBodyAsNumber)) {
+              throw new Error('Response body is not a number');
+            }
+            if (responseBodyAsNumber !== 1) {
+              throw new Error('Response body is not 1');
+            }
           });
       });
     });

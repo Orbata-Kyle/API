@@ -216,4 +216,25 @@ export class TournamentController {
 
     return this.tournamentService.removeMovieRankingsEndpoint(userId, Number(movieId), interactionStatus);
   }
+
+  @UseGuards(JwtGuard)
+  @Get('progress/:interactionStatus')
+  @ApiBearerAuth('access-token')
+  @ApiOperation({ summary: 'Get Users rough Tournament Progress' })
+  @ApiParam({
+    name: 'interactionStatus',
+    type: String,
+    enum: ['liked', 'disliked'],
+    description: 'Interaction status to check for progress',
+    required: true,
+  })
+  @ApiResponse({ status: 200, description: 'Tournament progress', type: String })
+  @ApiResponse({ status: 400, description: 'Invalid interactionStatus' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  async getTournamentProgress(
+    @GetUser('id') userId: number,
+    @Param('interactionStatus', new ValidateSeenInteractionStatus()) interactionStatus: string,
+  ): Promise<string> {
+    return this.tournamentService.getTournamentProgress(userId, interactionStatus);
+  }
 }

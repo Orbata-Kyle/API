@@ -154,6 +154,36 @@ export class TournamentService {
     return 'Successfully removed movie rankings';
   }
 
+  async getTournamentProgress(userId: number, interactionStatus: string): Promise<string> {
+    // Get unique tournament rankings
+    const userRankings = await this.prismaService.tournamentRating.findMany({
+      where: { userId, interactionStatus },
+    });
+    const uniqueRankings = new Set<number>();
+    for (const ranking of userRankings) {
+      uniqueRankings.add(ranking.movie1Id);
+      uniqueRankings.add(ranking.movie2Id);
+    }
+
+    // Get unique user ratings
+    const userRatings = await this.prismaService.userMovieRating.findMany({
+      where: { userId, interactionStatus },
+    });
+    const uniqueRatings = new Set<number>();
+    for (const rating of userRatings) {
+      uniqueRatings.add(rating.movieId);
+    }
+
+    if (uniqueRatings.size === 0 || uniqueRankings.size === 0) return '0';
+
+    if (uniqueRatings.size < uniqueRankings.size) {
+      logger.error(`User ${userId} has more unique tournament rankings than unique user ratings`);
+      throw new InternalServerErrorException('Internal Server Error');
+    }
+
+    return (uniqueRankings.size / uniqueRatings.size).toFixed(4);
+  }
+
   async removeMovieRankingsEverywhere(
     userId: number,
     movieId: number,
