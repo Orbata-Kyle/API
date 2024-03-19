@@ -18,21 +18,10 @@ export class RecsService {
     const userRankingsLiked = await this.tournamentService.getUsersTournamentRankings(userId, true);
     const userRankingsDisliked = await this.tournamentService.getUsersTournamentRankings(userId, false);
 
-    const usersRankingsUnseen = await this.prisma.userMovieRating.findMany({
-      where: {
-        userId: userId,
-        interactionStatus: 'unseen',
-      },
-      select: {
-        movieId: true,
-      },
-    });
-
     if (userRankingsLiked.length < 5) throw new NotFoundException('Not enough user data');
 
     const userRankingsLikedIdSet = new Set(userRankingsLiked.map((ranking) => ranking.id));
     const userRankingsDislikedIdSet = new Set(userRankingsDisliked.map((ranking) => ranking.id));
-    const userRankingsUnseenIdSet = new Set(usersRankingsUnseen.map((ranking) => ranking.movieId));
 
     // Loop through rankings and get recommendations from TMDB for liked rankings, filter by voteCount > 1000, voteAverage > 6 and already in rankings
     // Same for disliked rankings
@@ -62,13 +51,7 @@ export class RecsService {
       const tmdbRecs = await this.movieCache.getRecommendationsForMovie(ranking.id);
 
       for (const rec of tmdbRecs) {
-        if (
-          rec.voteCount > 1000 &&
-          rec.voteAverage > 6 &&
-          !userRankingsLikedIdSet.has(rec.id) &&
-          !userRankingsDislikedIdSet.has(rec.id) &&
-          !userRankingsUnseenIdSet.has(rec.id)
-        ) {
+        if (rec.voteCount > 1000 && rec.voteAverage > 6 && !userRankingsLikedIdSet.has(rec.id) && !userRankingsDislikedIdSet.has(rec.id)) {
           const originalRanking = Number(ranking.rank === '?' ? splicedLikedRankings.length : ranking.rank);
           if (likedWeigts.has(rec.id)) {
             // Increase existing weight by more than the avg of it + new weight but less than it + new weight
