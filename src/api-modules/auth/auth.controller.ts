@@ -1,4 +1,4 @@
-import { BadRequestException, Body, Controller, HttpCode, HttpStatus, Post, Query } from '@nestjs/common';
+import { BadRequestException, Body, Controller, HttpCode, HttpStatus, Post, Query, Put } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { AuthDto, AuthSigninDto, ResetPasswordDto } from './dto/request';
 import { AuthResponseDto } from './dto/response';
@@ -48,7 +48,7 @@ export class AuthController {
     return await this.authService.forgotPassword(email);
   }
 
-  @Post('resetPassword')
+  @Put('resetPassword')
   @ApiOperation({ summary: 'Reset password with resetToken' })
   @ApiResponse({ status: 200, description: 'Password reset' })
   @ApiResponse({ status: 400, description: 'Bad resetToken or invalid body' })

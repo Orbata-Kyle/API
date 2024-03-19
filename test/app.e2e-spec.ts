@@ -524,8 +524,137 @@ describe('App e2e', () => {
     });
   });
 
+  describe('reset password', () => {
+    describe('forgotPassword', () => {
+      it('Should throw if email not found', () => {
+        return pactum.spec().post('/auth/forgotPassword').withQueryParams('email', 'test@lol.de').expectStatus(400);
+      });
+
+      it('Shold throw if not valid email', () => {
+        return pactum.spec().post('/auth/forgotPassword').withQueryParams('email', 'test').expectStatus(400);
+      });
+
+      it('Should send email with resetToken', () => {
+        return pactum.spec().post('/auth/forgotPassword').withQueryParams('email', 'newMail@test.de').expectStatus(201);
+      });
+    });
+    let resetToken: string;
+
+    it('Should get resetToken', async () => {
+      const user = await prisma.user.findUnique({
+        where: {
+          id: userId,
+        },
+      });
+      resetToken = user.activePasswordResetToken;
+      expect(resetToken).toBeDefined();
+    });
+
+    describe('resetPassword', () => {
+      it('Should throw if no resetToken', () => {
+        return pactum
+          .spec()
+          .put('/auth/resetPassword')
+          .withBody({
+            email: 'newMail@test.de',
+            newPassword: 'newPassword',
+          })
+          .expectStatus(400);
+      });
+
+      it('Should throw if no newPassword', () => {
+        return pactum
+          .spec()
+          .put('/auth/resetPassword')
+          .withBody({
+            email: 'newMail@test.de',
+            resetToken: resetToken,
+          })
+          .expectStatus(400);
+      });
+
+      it('Should throw if invalid resetToken', () => {
+        return pactum
+          .spec()
+          .put('/auth/resetPassword')
+          .withBody({
+            email: 'newMail@test.de',
+            newPassword: 'newPassword',
+            resetToken: resetToken + '2',
+          })
+          .expectStatus(400);
+      });
+
+      it('Should throw if invalid email', () => {
+        return pactum
+          .spec()
+          .put('/auth/resetPassword')
+          .withBody({
+            email: 'testtest.de',
+            newPassword: 'newPassword',
+            resetToken: resetToken,
+          })
+          .expectStatus(400);
+      });
+
+      it('Should throw if email not found', () => {
+        return pactum
+          .spec()
+          .put('/auth/resetPassword')
+          .withBody({
+            email: 'test@test.de',
+            newPassword: 'newPassword',
+            resetToken: resetToken,
+          })
+          .expectStatus(400);
+      });
+
+      it('Should reset password, then prev access token invalid, then login with new pw and save new access_token', async () => {
+        const previousAccessToken = pactum.stash.getDataStore()['userAt'];
+
+        await pactum
+          .spec()
+          .put('/auth/resetPassword')
+          .withBody({
+            email: 'newMail@test.de',
+            newPassword: 'newPassword',
+            resetToken: resetToken,
+          })
+          .expectStatus(200);
+
+        // Try to access with old access token
+        await pactum
+          .spec()
+          .get('/user')
+          .withHeaders({
+            Authorization: `Bearer ${previousAccessToken}`,
+          })
+          .expectStatus(401);
+
+        await pactum
+          .spec()
+          .post('/auth/signin')
+          .withBody({ email: 'newMail@test.de', password: 'newPassword' })
+          .expectStatus(200)
+          .stores('userAt', 'access_token');
+      });
+
+      it('Should throw if trying to reset password with same token again', () => {
+        return pactum
+          .spec()
+          .put('/auth/resetPassword')
+          .withBody({
+            email: 'newMail@test.de',
+            newPassword: 'badPw',
+            resetToken: resetToken,
+          })
+          .expectStatus(400);
+      });
+    });
+  });
+
   describe('Swipe default', () => {
-    describe('getNextMovieToSwipe', async () => {
+    describe('getNextMovieToSwipe', () => {
       let movieId: number;
 
       it('Should getNextMovieToSwipe', async () => {
