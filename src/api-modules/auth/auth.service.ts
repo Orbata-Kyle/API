@@ -6,7 +6,6 @@ import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import logger from '../../utils/logging/winston-config';
 import { MailerService } from '@nestjs-modules/mailer';
-import { SafeUser } from 'src/types';
 
 @Injectable()
 export class AuthService {
