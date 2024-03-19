@@ -93,12 +93,6 @@ export class AuthService {
 
     const resetToken = await this.signPasswordResetToken(user.id);
 
-    // So that the token is only for one use
-    await this.prisma.user.update({
-      where: { id: user.id },
-      data: { activePasswordResetToken: resetToken },
-    });
-
     // Send email with resetToken
     await this.mailerService.sendMail({
       to: user.email,
@@ -109,6 +103,13 @@ export class AuthService {
         firstName: user.firstName,
       },
     });
+
+    // So that the token is only for one use
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: { activePasswordResetToken: resetToken },
+    });
+
     logger.info(`Password reset token for user ${user.id} sent`);
     return 'Email sent';
   }
