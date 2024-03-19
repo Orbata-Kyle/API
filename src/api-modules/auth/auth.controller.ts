@@ -1,14 +1,10 @@
-import { BadRequestException, Body, Controller, HttpCode, HttpStatus, Post, Query, UseGuards } from '@nestjs/common';
+import { BadRequestException, Body, Controller, HttpCode, HttpStatus, Post, Query } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { AuthDto, AuthSigninDto, ResetPasswordDto } from './dto/request';
 import { AuthResponseDto } from './dto/response';
-import { ApiOperation, ApiResponse, ApiTags, ApiBody, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
+import { ApiOperation, ApiResponse, ApiTags, ApiBody, ApiQuery } from '@nestjs/swagger';
 import { ResponseValidationService } from '../../utility-modules/validation/response-validation.service';
-import { JwtGuard } from './guard';
-import { GetUser } from './decorator';
-import { SafeUser } from 'src/types';
-import { IsEmail } from 'class-validator';
-import { ValidateEmailPipe } from 'src/pipes/email.pipe';
+import { ValidateEmailPipe } from '../../pipes/email.pipe';
 
 @ApiTags('Auth')
 @Controller('auth')
