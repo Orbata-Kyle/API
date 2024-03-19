@@ -22,12 +22,32 @@ export class LoggingMiddleware implements NestMiddleware {
       const elapsed = Date.now() - start;
 
       // Log response body with a length check
-      const loggedResponseBody = responseBody.length > 100 ? responseBody.substring(0, 150) + '...' : responseBody;
+      const loggedResponseBody = responseBody && responseBody.length > 100 ? responseBody.substring(0, 150) + '...' : responseBody;
+
+      const sanitize = (obj: any) => {
+        // Prevent logging of sensitive data
+        const keywords = ['pw', 'password', 'Password', 'newPassword'];
+        const newObj = { ...obj };
+        Object.keys(newObj).forEach((key) => {
+          if (keywords.includes(key)) {
+            newObj[key] = '***';
+          }
+        });
+        return newObj;
+      };
+
+      const sanitizedBody = sanitize(body);
+      const sanitizedQuery = sanitize(query);
 
       // Serialize and truncate request body and query params
-      const loggedRequestBody = JSON.stringify(body).length > 100 ? JSON.stringify(body).substring(0, 100) + '...' : JSON.stringify(body);
+      const loggedRequestBody =
+        JSON.stringify(sanitizedBody).length > 100
+          ? JSON.stringify(sanitizedBody).substring(0, 100) + '...'
+          : JSON.stringify(sanitizedBody);
       const loggedRequestQuery =
-        JSON.stringify(query).length > 100 ? JSON.stringify(query).substring(0, 100) + '...' : JSON.stringify(query);
+        JSON.stringify(sanitizedQuery).length > 100
+          ? JSON.stringify(sanitizedQuery).substring(0, 100) + '...'
+          : JSON.stringify(sanitizedQuery);
       const loggedRequestParams =
         JSON.stringify(params).length > 100 ? JSON.stringify(params).substring(0, 100) + '...' : JSON.stringify(params);
 
