@@ -13,6 +13,7 @@ export class UserService {
 
   async retrieveOwnUser(user: SafeUser) {
     logger.info(`User ${user.email} with id ${user.id} retrieved`);
+    delete user.activePasswordResetToken;
     return user;
   }
 
@@ -42,6 +43,7 @@ export class UserService {
     });
     if (!user) throw new NotFoundException('User not found');
     delete user.hash;
+    delete user.activePasswordResetToken;
     return user;
   }
 
@@ -63,11 +65,7 @@ export class UserService {
       updatedUser.hash = hash;
 
       // Invalidate all sessions for this user
-      await this.prisma.invalidUserSession.upsert({
-        where: { userId: userId },
-        update: { updatedAt: new Date() },
-        create: { userId: userId },
-      });
+      await this.authService.invalidateSessions(userId);
 
       // Wait some time before creating new token to ensure getting a valid token
       await new Promise((resolve) => setTimeout(resolve, 10));
@@ -114,6 +112,7 @@ export class UserService {
     logger.info(`User ${userId} profile changed`);
 
     delete user.hash;
+    delete user.activePasswordResetToken;
 
     if (user.birthDate) {
       return {

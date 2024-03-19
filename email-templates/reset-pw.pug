@@ -1,0 +1,18 @@
+doctype html
+html
+  head
+    title Reset Your Password
+  body
+    div
+      h1 OmList - Reset Your Password
+      p Hello #{firstName},
+      p We received a request to reset your password for your OmList account. If you did not request this, please ignore this email.
+      p To reset your password, please follow this link:
+      p
+        a(href=`https://www.DEFAULT_URL.com/${resetToken}`) Reset Password
+      p If you're having trouble clicking the button, copy and paste the following URL into your web browser:
+      p https://www.DEFAULT_URL.com/#{resetToken}
+      p Thank you,
+      p The OmList Team
+      hr
+      p &copy; 2024 OmList. All rights reserved.

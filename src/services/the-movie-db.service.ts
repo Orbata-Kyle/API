@@ -1,18 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
-import type {
-  Cast,
-  CastPerson,
-  Crew,
-  CrewPerson,
-  Keyword,
-  MovieDetails,
-  MovieGenre,
-  MovieSpokenLanguage,
-  Prisma,
-  Video,
-} from '@prisma/client';
+import type { Cast, Crew, Keyword, MovieDetails, MovieGenre, MovieSpokenLanguage, Prisma, Video } from '@prisma/client';
 import { PrismaService } from '../utility-modules/prisma/prisma.service';
 interface MovieDbMovie {
   adult: boolean;

@@ -13,9 +13,33 @@ import { MovieCacheModule } from './utility-modules/movie-cache/db-movie-cache.m
 import { ResponseValidationModule } from './utility-modules/validation/response-validation.module';
 import { RecsModule } from './api-modules/recs/recs.module';
 import { PeopleModule } from './api-modules/people/people.module';
+import { MailerModule } from '@nestjs-modules/mailer';
+import { PugAdapter } from '@nestjs-modules/mailer/dist/adapters/pug.adapter';
+import * as dotenv from 'dotenv';
+
+dotenv.config(); // Ensure this is at the top to load env variables first
 
 @Module({
   imports: [
+    MailerModule.forRoot({
+      transport: {
+        service: 'gmail',
+        auth: {
+          user: process.env.GMAIL_ACCOUNT,
+          pass: process.env.GMAIL_PASSWORD,
+        },
+      },
+      defaults: {
+        from: '"No Reply" <omlisthelp@gmail.com>',
+      },
+      template: {
+        dir: process.cwd() + '/email-templates/',
+        adapter: new PugAdapter(),
+        options: {
+          strict: true,
+        },
+      },
+    }),
     ConfigModule.forRoot({ isGlobal: true }),
     ResponseValidationModule,
     JwtModule.register({}),
