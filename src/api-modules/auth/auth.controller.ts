@@ -55,6 +55,6 @@ export class AuthController {
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiBody({ type: ResetPasswordDto, required: true })
   async resetPassword(@Body() dto: ResetPasswordDto): Promise<string> {
-    return await this.authService.resetPassword(dto.email, dto.resetToken, dto.newPassword);
+    return await this.authService.resetPassword(dto.resetToken, dto.newPassword);
   }
 }
