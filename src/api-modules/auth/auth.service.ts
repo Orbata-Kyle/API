@@ -149,7 +149,7 @@ export class AuthService {
       data: {
         hash: hash,
         UserExtras: {
-          updateMany: {
+          update: {
             where: {
               userId: tokenPayload.sub,
             },
