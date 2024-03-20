@@ -13,7 +13,6 @@ export class UserService {
 
   async retrieveOwnUser(user: SafeUser) {
     logger.info(`User ${user.email} with id ${user.id} retrieved`);
-    delete user.activePasswordResetToken;
     return user;
   }
 
@@ -43,7 +42,6 @@ export class UserService {
     });
     if (!user) throw new NotFoundException('User not found');
     delete user.hash;
-    delete user.activePasswordResetToken;
     return user;
   }
 
@@ -112,7 +110,6 @@ export class UserService {
     logger.info(`User ${userId} profile changed`);
 
     delete user.hash;
-    delete user.activePasswordResetToken;
 
     if (user.birthDate) {
       return {

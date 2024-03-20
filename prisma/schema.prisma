@@ -223,23 +223,29 @@ model MovieRecommedation {
 }
 
 model User {
-  id                       Int                  @id @default(autoincrement())
-  firstName                String
-  lastName                 String
-  email                    String               @unique
-  birthDate                DateTime?
-  phoneNumber              String?
-  gender                   String?
-  country                  String?
-  activePasswordResetToken String?
-  hash                     String
-  admin                    Boolean              @default(false)
-  UserMovieRating          UserMovieRating[]
-  UserMoviePairs           TournamentRating[]
-  InvalidUserSession       InvalidUserSession[]
+  id                 Int                  @id @default(autoincrement())
+  firstName          String
+  lastName           String
+  email              String               @unique
+  birthDate          DateTime?
+  phoneNumber        String?
+  gender             String?
+  country            String?
+  hash               String
+  admin              Boolean              @default(false)
+  UserMovieRating    UserMovieRating[]
+  UserMoviePairs     TournamentRating[]
+  InvalidUserSession InvalidUserSession[]
+  UserExtras         UserExtras[]
 
   updatedAt DateTime @updatedAt
   createdAt DateTime @default(now())
+}
+
+model UserExtras {
+  userId                   Int     @id
+  activePasswordResetToken String?
+  user                     User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model UserMovieRating {

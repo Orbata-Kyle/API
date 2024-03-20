@@ -7,6 +7,12 @@ import { ConfigService } from '@nestjs/config';
 import logger from '../../utils/logging/winston-config';
 import { MailerService } from '@nestjs-modules/mailer';
 
+type PasswordResetTokenPayload = {
+  sub: number;
+  type: 'password-reset';
+  iat: number;
+};
+
 @Injectable()
 export class AuthService {
   constructor(
@@ -38,7 +44,6 @@ export class AuthService {
 
       const returnObj = { ...user, access_token: (await this.signToken(user.id, user.email)).access_token };
       delete returnObj.hash;
-      delete returnObj.activePasswordResetToken;
 
       if (returnObj.birthDate) {
         return { ...returnObj, birthDate: returnObj.birthDate.toISOString() };
@@ -73,7 +78,6 @@ export class AuthService {
     logger.info(`User ${user.email} with id ${user.id} logged in`);
     const returnObj = { ...user, access_token: (await this.signToken(user.id, user.email)).access_token };
     delete returnObj.hash;
-    delete returnObj.activePasswordResetToken;
 
     if (returnObj.birthDate) {
       return { ...returnObj, birthDate: returnObj.birthDate.toISOString() };
@@ -105,43 +109,60 @@ export class AuthService {
     });
 
     // So that the token is only for one use
-    await this.prisma.user.update({
-      where: { id: user.id },
-      data: { activePasswordResetToken: resetToken },
+    await this.prisma.userExtras.upsert({
+      where: { userId: user.id },
+      update: { activePasswordResetToken: resetToken },
+      create: {
+        userId: user.id,
+        activePasswordResetToken: resetToken,
+      },
     });
 
     logger.info(`Password reset token for user ${user.id} sent`);
     return 'Email sent';
   }
 
-  async resetPassword(email: string, resetToken: string, newPassword: string): Promise<string> {
-    // Find user by email
-    const user = await this.prisma.user.findUnique({
-      where: { email },
-    });
-    if (!user) {
-      throw new BadRequestException('User with that email not found');
-    }
-
-    // Check that it is the current active token for the user
-    if (resetToken !== user.activePasswordResetToken) {
+  async resetPassword(resetToken: string, newPassword: string): Promise<string> {
+    let tokenPayload: PasswordResetTokenPayload;
+    try {
+      tokenPayload = await this.verifyPasswordResetToken(resetToken);
+    } catch (error) {
       throw new BadRequestException('Invalid token');
     }
 
-    const tokenValid = await this.verifyPasswordResetToken(resetToken, user.id);
-    if (!tokenValid) {
+    if (!tokenPayload || tokenPayload.type !== 'password-reset') {
+      throw new BadRequestException('Invalid token');
+    }
+
+    // Check that it is the current active token for the user
+    const userExtras = await this.prisma.userExtras.findUnique({
+      where: { userId: tokenPayload.sub },
+    });
+    if (resetToken !== userExtras.activePasswordResetToken) {
       throw new BadRequestException('Invalid token');
     }
 
     // Valid token, reset password
     const hash = await argon.hash(newPassword);
     await this.prisma.user.update({
-      where: { id: user.id },
-      data: { hash, activePasswordResetToken: null },
+      where: { id: tokenPayload.sub },
+      data: {
+        hash: hash,
+        UserExtras: {
+          updateMany: {
+            where: {
+              userId: tokenPayload.sub,
+            },
+            data: {
+              activePasswordResetToken: null,
+            },
+          },
+        },
+      },
     });
-    await this.invalidateSessions(user.id);
+    await this.invalidateSessions(tokenPayload.sub);
 
-    logger.info(`Password reset for user ${user.id}`);
+    logger.info(`Password reset for user ${tokenPayload.sub}`);
     return 'Password reset';
   }
 
@@ -172,7 +193,7 @@ export class AuthService {
   }
 
   private async signPasswordResetToken(userId: number): Promise<string> {
-    const payload = {
+    const payload: PasswordResetTokenPayload = {
       sub: userId,
       type: 'password-reset',
       iat: Date.now(),
@@ -187,23 +208,10 @@ export class AuthService {
     return token;
   }
 
-  private async verifyPasswordResetToken(token: string, userId: number): Promise<boolean> {
-    try {
-      const payload = await this.jwt.verifyAsync(token, {
-        secret: this.config.get('JWT_SECRET'),
-      });
-
-      if (!payload.sub || (payload.sub && payload.sub !== userId)) {
-        return false;
-      }
-      if (!payload.type || (payload.type && payload.type !== 'password-reset')) {
-        return false;
-      }
-    } catch (error) {
-      logger.warn(error);
-      return false;
-    }
-
-    return true;
+  private async verifyPasswordResetToken(token: string): Promise<PasswordResetTokenPayload> {
+    const payload = await this.jwt.verifyAsync(token, {
+      secret: this.config.get('JWT_SECRET'),
+    });
+    return payload as PasswordResetTokenPayload;
   }
 }

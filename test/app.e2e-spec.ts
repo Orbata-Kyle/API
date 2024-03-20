@@ -541,12 +541,12 @@ describe('App e2e', () => {
     let resetToken: string;
 
     it('Should get resetToken', async () => {
-      const user = await prisma.user.findUnique({
+      const userExtra = await prisma.userExtras.findFirst({
         where: {
-          id: userId,
+          userId: userId,
         },
       });
-      resetToken = user.activePasswordResetToken;
+      resetToken = userExtra.activePasswordResetToken;
       expect(resetToken).toBeDefined();
     });
 
@@ -556,7 +556,6 @@ describe('App e2e', () => {
           .spec()
           .put('/auth/resetPassword')
           .withBody({
-            email: 'newMail@test.de',
             newPassword: 'newPassword',
           })
           .expectStatus(400);
@@ -567,7 +566,6 @@ describe('App e2e', () => {
           .spec()
           .put('/auth/resetPassword')
           .withBody({
-            email: 'newMail@test.de',
             resetToken: resetToken,
           })
           .expectStatus(400);
@@ -578,33 +576,8 @@ describe('App e2e', () => {
           .spec()
           .put('/auth/resetPassword')
           .withBody({
-            email: 'newMail@test.de',
             newPassword: 'newPassword',
             resetToken: resetToken + '2',
-          })
-          .expectStatus(400);
-      });
-
-      it('Should throw if invalid email', () => {
-        return pactum
-          .spec()
-          .put('/auth/resetPassword')
-          .withBody({
-            email: 'testtest.de',
-            newPassword: 'newPassword',
-            resetToken: resetToken,
-          })
-          .expectStatus(400);
-      });
-
-      it('Should throw if email not found', () => {
-        return pactum
-          .spec()
-          .put('/auth/resetPassword')
-          .withBody({
-            email: 'test@test.de',
-            newPassword: 'newPassword',
-            resetToken: resetToken,
           })
           .expectStatus(400);
       });
@@ -616,7 +589,6 @@ describe('App e2e', () => {
           .spec()
           .put('/auth/resetPassword')
           .withBody({
-            email: 'newMail@test.de',
             newPassword: 'newPassword',
             resetToken: resetToken,
           })
@@ -644,7 +616,6 @@ describe('App e2e', () => {
           .spec()
           .put('/auth/resetPassword')
           .withBody({
-            email: 'newMail@test.de',
             newPassword: 'badPw',
             resetToken: resetToken,
           })
