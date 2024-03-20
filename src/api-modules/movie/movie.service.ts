@@ -15,7 +15,6 @@ export class MovieService {
 
   async searchForMovieByTitle(title: string, page: number): Promise<Movie[]> {
     const movies = await this.movieCache.searchForMovieByTitle(title, page);
-
     return movies;
   }
 

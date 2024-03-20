@@ -44,14 +44,18 @@ export class SwipeService {
   }
 
   async getNextMovieToSwipe(userId: number): Promise<Movie[]> {
+    const ratedByOthersMinimumCount = 1;
+    const fromPopularMoviesRandomness = 0.55;
+    const minimumStackSize = 100;
+
     // Get all movies liked or disliked by other users, not rated by current one
-    // If at least a certain number of movies, return them ordered by number of rates
-    // Else get top rated movies not already rated by current user (If exhausted, get popular movies not already rated by current user)
+    // Use them ordered by number of rates at top of retunred list
+    // append by top rated and popular (for diversity as it is fresher) movies not already rated by current user until at least a defined number of movies are in the list
 
     let filteredMovies: Movie[] = [];
 
-    // Get movies rated (not 'unseen') by other users, not rated by current one, order by number of likes
-    const ratedByOthersGrouped = await this.prisma.userMovieRating.groupBy({
+    // Get movies rated (not 'unseen') by other users, not rated by current one
+    let ratedByOthersGrouped = await this.prisma.userMovieRating.groupBy({
       by: ['movieId'],
       where: {
         userId: {
@@ -77,22 +81,23 @@ export class SwipeService {
     });
 
     // create map of movieId to number of rates
-    const ratedByOthersGroupedMap = new Map<number, number>();
+    const ratedByOthersGroupedMapToRates = new Map<number, number>();
     ratedByOthersGrouped.forEach((movie) => {
-      ratedByOthersGroupedMap.set(movie.movieId, movie._count.movieId);
+      if (movie._count.movieId >= ratedByOthersMinimumCount) ratedByOthersGroupedMapToRates.set(movie.movieId, movie._count.movieId);
     });
+    ratedByOthersGrouped = undefined; // Not use this anymore, outdated
 
-    if (ratedByOthersGrouped.length >= 1) {
+    if (ratedByOthersGroupedMapToRates.size >= 1) {
       const moviesRatedByOthers = await this.prisma.movie.findMany({
         where: {
           id: {
-            in: ratedByOthersGrouped.map((movie) => movie.movieId),
+            in: Array.from(ratedByOthersGroupedMapToRates.keys()),
           },
         },
       });
       // Sort by number of rates
       moviesRatedByOthers.sort((a, b) => {
-        return ratedByOthersGroupedMap.get(b.id) - ratedByOthersGroupedMap.get(a.id);
+        return ratedByOthersGroupedMapToRates.get(b.id) - ratedByOthersGroupedMapToRates.get(a.id);
       });
       filteredMovies = moviesRatedByOthers;
     }
@@ -102,11 +107,11 @@ export class SwipeService {
     let popularPage = 1;
     const moviesRatedByOthersCount = filteredMovies.length;
 
-    // Iterate pages of top rated movies (popular if it runs out) and add to return list until we have at least 40 movies
-    while (filteredMovies.length <= 100) {
+    // Iterate pages of top rated movies and popular ones for variety and add to return list until we have at least 40 movies
+    while (filteredMovies.length <= minimumStackSize) {
       // Let random chance decide whether to get a movie from popular or top rated
       // Popular movies bring in more variety, top rated movies bring in more quality
-      const fromPopularMovies = Math.random() < 0.55;
+      const fromPopularMovies = Math.random() < fromPopularMoviesRandomness;
 
       const {
         movies: relevantMovieList,
@@ -135,7 +140,7 @@ export class SwipeService {
         relevantMovieList.filter((movie) => {
           return (
             !alreadyWatchedMovieIds.has(movie.id) &&
-            !ratedByOthersGroupedMap.has(movie.id) &&
+            !ratedByOthersGroupedMapToRates.has(movie.id) &&
             !filteredMovies.find((m) => m.id === movie.id)
           );
         }),
