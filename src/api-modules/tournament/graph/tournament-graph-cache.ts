@@ -44,7 +44,7 @@ export class TournamentGraphCache {
   }
 
   public async getLikeGraphForUser(userId: number): Promise<TournamentGraph> {
-    if (this.likesCache[userId] && this.likesCache[userId].timestamp > Date.now() - 1000 * 60 * 60 * 24) {
+    if (this.likesCache[userId] && !this.isCacheExpired(this.likesCache[userId].timestamp)) {
       this.checkAndRemoveOldCaches();
       return this.likesCache[userId].graph;
     } else {
@@ -56,7 +56,7 @@ export class TournamentGraphCache {
   }
 
   public async getDislikedGraphForUser(userId: number): Promise<TournamentGraph> {
-    if (this.dislikesCache[userId] && this.dislikesCache[userId].timestamp > Date.now() - 1000 * 60 * 60 * 24) {
+    if (this.dislikesCache[userId] && !this.isCacheExpired(this.dislikesCache[userId].timestamp)) {
       this.checkAndRemoveOldCaches();
       return this.dislikesCache[userId].graph;
     } else {
@@ -81,19 +81,20 @@ export class TournamentGraphCache {
   }
 
   private checkAndRemoveOldCaches() {
-    const now = Date.now();
-    const oneDay = 1000 * 60 * 60 * 24;
-
     Object.keys(this.likesCache).forEach((key) => {
-      if (this.likesCache[key].timestamp < now - oneDay) {
-        this.likesCache[key] = undefined;
+      if (this.isCacheExpired(this.likesCache[key].timestamp)) {
+        delete this.likesCache[key];
       }
     });
 
     Object.keys(this.dislikesCache).forEach((key) => {
-      if (this.dislikesCache[key].timestamp < now - oneDay) {
-        this.dislikesCache[key] = undefined;
+      if (this.isCacheExpired(this.dislikesCache[key].timestamp)) {
+        delete this.dislikesCache[key];
       }
     });
+  }
+
+  private isCacheExpired(timestamp: number): boolean {
+    return timestamp < Date.now() - 1000 * 60 * 60 * 24;
   }
 }
